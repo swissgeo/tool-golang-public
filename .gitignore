@@ -1,0 +1,2 @@
+k8s-validate    # ignore built artifact
+!k8s-validate/  # but don't ignore folder
