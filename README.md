@@ -1,7 +1,42 @@
-# template-service-semver-public
-Template for service-semver public repository for the BGDI. Managed by geoadmin/infra-terraform-github-bgdi
+# Golang CLI Tools for BGDI
 
 | Branch | Status |
 |--------|-----------|
-| develop | ![Build Status](CODEBUILD_BADGE_URL) |
-| master | ![Build Status](CODEBUILD_BADGE_URL) |
+| master | ![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiSklmL2ZFYzE2QXRVZzloVFo4dFYrdHh3a2pzZXZOYnYxSXpVVzRRbUlzUDJ6OEpSMWREaHo5d01hYUFpdjR3V05ORkljcG96aUlJTG8wOWZoMituTzlNPSIsIml2UGFyYW1ldGVyU3BlYyI6InBTdWJDZjh1bXNaR1pZSGwiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master) |
+
+This repository contains CLI tools written in golang to manage BGDI services and infrastructure.
+
+- [Repository structure](#repository-structure)
+- [Naming convention](#naming-convention)
+- [Formatting and linting](#formatting-and-linting)
+
+## Repository structure
+
+```text
+tool-golang-bgdi
+    |-- TOOL_NAME
+    .      |-- main.go
+           |-- README.md
+           |-- cmd
+                |-- root.go
+```
+
+## Naming convention
+
+`TOOL_NAME` should be in kebab case
+
+## Formatting and linting
+
+Code should be formatted with `goimports` and linted with `golangci-lint`
+
+```bash
+goimports -w .
+```
+
+```bash
+golangci-lint run
+```
+
+## CLI commands
+
+- [k8s-validate](./k8s-validate/README.md)
