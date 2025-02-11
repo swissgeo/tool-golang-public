@@ -11,6 +11,16 @@ Currently it only supports kustomize but could be extended in future to also sup
 go install github.com/geoadmin/tool-golang-bgdi/k8s-validate@latest
 ```
 
+Install tab completion
+
+```bash
+# Bash
+k8s-validate completion bash > /usr/share/bash-completion/completions/k8s-validate
+
+# ZSH
+k8s-validate completion zsh > ~/.zsh/completion/_k8s-validate
+```
+
 ## Usage
 
 ```bash

@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-func findFolders() []string {
+func findFolders() ([]string, error) {
 	// Find all directories containing kustomization.yaml
 	var folders []string
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
@@ -25,40 +25,37 @@ func findFolders() []string {
 		return nil
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error finding kustomize folders:", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error finding kustomize folders: %s", err)
 	}
 
 	// Sort the folders
 	sort.Strings(folders)
 
-	return folders
+	return folders, nil
 }
 
-func validate(folder string, failFast bool) bool {
-	var valid = true
-
+func validate(folder string) bool {
+	indent := "60"
 	// Build the kustomization.yaml with kustomize
 	cmd := exec.Command("kustomize", "build", folder)
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error running kustomize build on %s: %v\n", folder, err)
-		valid = false
+		fmt.Fprintf(os.Stderr, "Running kustomize build on: %-"+indent+"s ERROR\n", folder+"...")
+		return false
 	}
-	if valid {
-		fmt.Printf("Running kustomize build on: %-50s OK\n", folder+"...")
-	} else {
-		fmt.Printf("Running kustomize build on: %-50s ERROR\n", folder+"...")
-		if failFast {
-			os.Exit(1)
-		}
-	}
-	return valid
+	fmt.Printf("Running kustomize build on: %-"+indent+"s OK\n", folder+"...")
+	return true
 }
 
 func ValidateKustomize(workers int, failFast bool) bool {
-	var folders = findFolders()
+	folders, err := findFolders()
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return false
+	}
 
 	if len(folders) == 0 {
 		fmt.Println("No kustomize folder found")
@@ -69,14 +66,17 @@ func ValidateKustomize(workers int, failFast bool) bool {
 	taskChan := make(chan string, len(folders)) // Buffered channel for tasks
 
 	// Start worker goroutines
-	var valid = true
+	valid := true
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for folder := range taskChan { // Process tasks from channel
-				if !validate(folder, failFast) {
+				if !validate(folder) {
 					valid = false
+					if failFast {
+						os.Exit(1)
+					}
 				}
 			}
 		}()
