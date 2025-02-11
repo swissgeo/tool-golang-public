@@ -7,7 +7,31 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+
+	"gopkg.in/yaml.v3"
 )
+
+type Manifest struct {
+	ApiVersion string `yaml:"apiVersion"`
+	Kind       string `yaml:"kind"`
+}
+
+func readYAML(filename string) (*Manifest, error) {
+	// Read the file content
+	d, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse YAML into struct
+	var m Manifest
+	err = yaml.Unmarshal(d, &m)
+	if err != nil {
+		return nil, err
+	}
+
+	return &m, nil
+}
 
 func findFolders() ([]string, error) {
 	// Find all directories containing kustomization.yaml
@@ -19,8 +43,15 @@ func findFolders() ([]string, error) {
 
 		// If the current file is kustomization.yaml, add its directory to the list
 		if info.Name() == "kustomization.yaml" {
-			dir := filepath.Dir(path)
-			folders = append(folders, dir)
+			m, err := readYAML(path)
+			if err != nil {
+				return fmt.Errorf("failed to read yaml file %s: %s", path, err)
+			}
+			// Only add folder containing a Kustomization Api Kind
+			if m.Kind == "Kustomization" {
+				dir := filepath.Dir(path)
+				folders = append(folders, dir)
+			}
 		}
 		return nil
 	})
