@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 	Use:   "k8s-validate",
 	Short: "Validate all kubernetes manifests in subdirectories",
 	Long:  `Run kustomization build in all subfolders containing a kustomization.yaml file`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		var workers int
 		if Parallel == 0 {
 			workers = runtime.NumCPU()

@@ -12,7 +12,7 @@ import (
 )
 
 type Manifest struct {
-	ApiVersion string `yaml:"apiVersion"`
+	APIVersion string `yaml:"apiVersion"`
 	Kind       string `yaml:"kind"`
 }
 
@@ -43,9 +43,9 @@ func findFolders() ([]string, error) {
 
 		// If the current file is kustomization.yaml, add its directory to the list
 		if info.Name() == "kustomization.yaml" {
-			m, err := readYAML(path)
-			if err != nil {
-				return fmt.Errorf("failed to read yaml file %s: %s", path, err)
+			m, e := readYAML(path)
+			if e != nil {
+				return fmt.Errorf("failed to read yaml file %s: %w", path, e)
 			}
 			// Only add folder containing a Kustomization Api Kind
 			if m.Kind == "Kustomization" {
@@ -56,7 +56,7 @@ func findFolders() ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error finding kustomize folders: %s", err)
+		return nil, fmt.Errorf("error finding kustomize folders: %w", err)
 	}
 
 	// Sort the folders
@@ -98,7 +98,7 @@ func ValidateKustomize(workers int, failFast bool) bool {
 
 	// Start worker goroutines
 	valid := true
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
