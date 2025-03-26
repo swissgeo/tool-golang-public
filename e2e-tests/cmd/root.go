@@ -3,33 +3,22 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"runtime"
 
 	"github.com/geoadmin/tool-golang-bgdi/lib/version"
 	"github.com/spf13/cobra"
 )
 
-var FailFast = false
-var Parallel = 0
+//-----------------------------------------------------------------------------
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "k8s-validate",
-	Short: "Validate all kubernetes manifests in subdirectories",
-	Long:  `Run kustomization build in all subfolders containing a kustomization.yaml file`,
-	Run: func(_ *cobra.Command, _ []string) {
-		var workers int
-		if Parallel == 0 {
-			workers = runtime.NumCPU()
-		} else {
-			workers = Parallel
-		}
-		var valid = ValidateKustomize(workers, FailFast)
-		if !valid {
-			os.Exit(1)
-		}
-	},
+	Use:   "e2e-tests",
+	Short: "BGDI CLI tool to control E2E tests",
+	Long: `This tool use the AWS SDK to control Codebuild to start E2E tests on Codebuild
+and get the final reports`,
 }
+
+//-----------------------------------------------------------------------------
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
@@ -38,6 +27,8 @@ var versionCmd = &cobra.Command{
 		fmt.Println(version.GetGitVersion())
 	},
 }
+
+//-----------------------------------------------------------------------------
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -49,22 +40,13 @@ func Execute() {
 	}
 }
 
+//-----------------------------------------------------------------------------
+
 func init() {
 	rootCmd.AddCommand(versionCmd)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-	rootCmd.PersistentFlags().BoolVar(&FailFast, "fail-fast", false, "Fail on first error.")
-	rootCmd.PersistentFlags().IntVarP(
-		&Parallel,
-		"parallel",
-		"j",
-		0,
-		`Run validation in parallel.
-By default it is set to 0 which means that it use the number of available CPU
-to determine how many parallel jobs are executed.`,
-	)
+	rootCmd.PersistentFlags().Bool("no-color", false, "Do not use color in output")
+	rootCmd.PersistentFlags().Bool("no-profile", false, "Do not use AWS profile swisstopo-bgdi-builder for credentials")
 
 	// Add completion command
 	rootCmd.AddCommand(&cobra.Command{
@@ -95,3 +77,5 @@ to determine how many parallel jobs are executed.`,
 		},
 	})
 }
+
+//-----------------------------------------------------------------------------

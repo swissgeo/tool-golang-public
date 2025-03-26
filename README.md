@@ -9,6 +9,7 @@ This repository contains CLI tools written in golang to manage BGDI services and
 - [Repository structure](#repository-structure)
 - [Naming convention](#naming-convention)
 - [Formatting and linting](#formatting-and-linting)
+- [CLI commands](#cli-commands)
 
 ## Repository structure
 
@@ -37,6 +38,14 @@ goimports -w .
 golangci-lint run
 ```
 
+To simplify the linting and formatting a makefile is available
+
+```bash
+make format
+make lint
+```
+
 ## CLI commands
 
 - [k8s-validate](./k8s-validate/README.md)
+- [e2e-tests](./e2e-tests/README.md)
