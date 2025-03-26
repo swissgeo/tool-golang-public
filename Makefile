@@ -28,6 +28,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo "Possible targets:"
+	@echo "- setup                  Install dependencies"
 	@echo -e " \033[1mFORMATING, LINTING AND TESTING TOOLS TARGETS\033[0m "
 	@echo "- format             	Format the go source code"
 	@echo "- lint               	Lint the go source code"
@@ -35,6 +36,14 @@ help:
 	@echo "- dockerlogin        	Login to the AWS ECR registry for pulling/pushing docker images"
 	@echo "- dockerbuild-e2e-tests  Build the tool e2e-tests locally (with tag := $(E2E_TESTS_DOCKER_IMG_LOCAL_TAG))"
 	@echo "- dockerpush-e2e-tests   Build and push the tool e2e-tests (with tag := $(E2E_TESTS_DOCKER_IMG_LOCAL_TAG))"
+
+
+.PHONY: setup
+setup:
+	go mod tidy
+	go install golang.org/x/tools/cmd/goimports@latest
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest
 
 
 # linting target, calls upon yapf to make sure your code is easier to read and respects some conventions.
