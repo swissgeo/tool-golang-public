@@ -47,6 +47,7 @@ format:
 .PHONY: lint
 lint:
 	golangci-lint run
+	govulncheck -show verbose ./...
 
 
 # Docker related functions.
