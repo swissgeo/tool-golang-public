@@ -48,6 +48,7 @@ func init() {
 	rootCmd.PersistentFlags().Bool("no-color", false, "Do not use color in output")
 	rootCmd.PersistentFlags().Bool("no-profile", false, "Do not use AWS profile swisstopo-bgdi-builder for credentials")
 	rootCmd.PersistentFlags().String("role", "", "Role to assume for AWS permissions")
+	rootCmd.PersistentFlags().Bool("no-progress", false, "For long running command don't display progress indicator")
 
 	// Add completion command
 	rootCmd.AddCommand(&cobra.Command{

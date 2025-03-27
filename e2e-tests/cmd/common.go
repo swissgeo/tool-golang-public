@@ -103,21 +103,35 @@ func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
 
 //-----------------------------------------------------------------------------
 
-func waitForBuild(ctx context.Context, client *codebuild.Client, buildID string) *codebuild.BatchGetBuildsOutput {
+func waitForBuild(
+	ctx context.Context,
+	client *codebuild.Client,
+	buildID string,
+	showProgress bool,
+) *codebuild.BatchGetBuildsOutput {
 	var result *codebuild.BatchGetBuildsOutput
 	var e error
 
 	input := &codebuild.BatchGetBuildsInput{
 		Ids: []string{buildID},
 	}
+	c := 0
 	for {
-		time.Sleep(5 * time.Second) //nolint:mnd
+		const waitTime = 1
+		if showProgress {
+			cPrintf(fmtc.NoColor, "\rWating for result: %ds ", c)
+			c += waitTime
+		}
+		time.Sleep(waitTime * time.Second)
 		result, e = client.BatchGetBuilds(ctx, input)
 		if e != nil {
 			log.Fatalf("failed to get build status: %v", e)
 		}
 		if len(result.Builds) == 0 {
 			log.Fatalf("no build found with id: %s", buildID)
+		}
+		if showProgress {
+			cPrintln(fmtc.NoColor, "")
 		}
 		if result.Builds[0].BuildComplete {
 			fmt.Printf("E2E tests finished with status: %s\n", result.Builds[0].BuildStatus)
