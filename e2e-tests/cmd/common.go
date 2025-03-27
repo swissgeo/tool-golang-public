@@ -51,7 +51,7 @@ func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
 	}
 	var cfg aws.Config
 	if noProfile {
-		cfg, e = config.LoadDefaultConfig(ctx)
+		cfg, e = config.LoadDefaultConfig(ctx, config.WithRegion("eu-central-1"))
 	} else {
 		cfg, e = config.LoadDefaultConfig(ctx, config.WithSharedConfigProfile("swisstopo-bgdi-builder"))
 	}
