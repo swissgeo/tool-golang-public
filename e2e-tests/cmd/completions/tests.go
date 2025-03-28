@@ -6,6 +6,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -13,19 +14,34 @@ import (
 
 //-----------------------------------------------------------------------------
 
-func FindTests(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
+func CompleteTests(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
 	repoPath, err := findGitRepo()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
+	testNames, err := findTests(repoPath)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	return testNames, cobra.ShellCompDirectiveNoFileComp
+}
+
+//-----------------------------------------------------------------------------
+
+func findTests(repoPath string) ([]string, error) {
 	var testNames []string
 	repoPath = fmt.Sprintf("%s/tests", repoPath)
 
 	// Walk the repo to find test files using WalkDir
-	err = filepath.WalkDir(repoPath, func(path string, d os.DirEntry, e error) error {
-		if e != nil || d.IsDir() {
+	err := filepath.WalkDir(repoPath, func(path string, d os.DirEntry, e error) error {
+		if e != nil {
 			return e
+		}
+
+		if strings.HasSuffix(path, "__pycache__") {
+			return filepath.SkipDir
 		}
 
 		// Match test files
@@ -43,10 +59,10 @@ func FindTests(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobr
 		return nil
 	})
 	if err != nil {
-		return nil, cobra.ShellCompDirectiveNoFileComp
+		return nil, err
 	}
 
-	return testNames, cobra.ShellCompDirectiveNoFileComp
+	return testNames, nil
 }
 
 //-----------------------------------------------------------------------------
@@ -63,24 +79,36 @@ func findGitRepo() (string, error) {
 	var gitRepoPath string
 
 	// Walk through the home directory to find a matching .git/config file
-	err = filepath.WalkDir(homeDir, func(path string, _ os.DirEntry, e error) error {
+	err = filepath.WalkDir(homeDir, func(path string, entry os.DirEntry, e error) error {
 		if e != nil {
 			return e
 		}
 
-		if strings.HasSuffix(path, "/.git/config") {
-			// Read the .git/config file and check if it matches the GitHub project URL
-			content, e2 := os.ReadFile(path)
-			if e2 != nil {
-				return e2
-			}
-
-			expectedURL := fmt.Sprintf("url = git@github.com:geoadmin/%s.git", gitRepo)
-			if strings.Contains(string(content), expectedURL) {
-				gitRepoPath = strings.TrimSuffix(path, "/.git/config")
-				return filepath.SkipAll // Stop searching further
-			}
+		// skip dot directory (hidden)
+		if strings.HasPrefix(entry.Name(), ".") && entry.IsDir() {
+			return filepath.SkipDir
 		}
+
+		// skip well known directory
+		if entry.IsDir() && slices.Contains([]string{
+			"node_modules",
+			"Downloads",
+			"Pictures",
+			"Music",
+			"snap",
+			"Videos",
+			"Templates",
+			"aws",
+			"go",
+		}, entry.Name()) {
+			return filepath.SkipDir
+		}
+
+		if entry.Name() == "infra-e2e-tests" {
+			gitRepoPath = path
+			return filepath.SkipAll
+		}
+
 		return nil // continue walking
 	})
 	if err != nil {

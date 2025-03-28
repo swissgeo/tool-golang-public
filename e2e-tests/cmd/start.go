@@ -60,7 +60,7 @@ func init() {
 		) {
 			return []cobra.Completion{"dev", "int", "prod"}, cobra.ShellCompDirectiveDefault
 		})
-	_ = startCmd.RegisterFlagCompletionFunc("tests", completions.FindTests)
+	_ = startCmd.RegisterFlagCompletionFunc("tests", completions.CompleteTests)
 }
 
 //-----------------------------------------------------------------------------
