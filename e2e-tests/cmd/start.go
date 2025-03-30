@@ -40,6 +40,10 @@ var startCmd = &cobra.Command{
 
 		printTestResult(ctx, client, re)
 	},
+	ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
+		// Avoid doing file/folder completion after the command
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	},
 }
 
 //-----------------------------------------------------------------------------

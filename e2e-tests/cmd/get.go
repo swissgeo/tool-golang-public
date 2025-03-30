@@ -64,6 +64,10 @@ Note that if the tests run is on-going, the command waits until its is finished.
 			log.Fatalf("failed to print test reports: %s", e)
 		}
 	},
+	ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
+		// Avoid doing file/folder completion after the command
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	},
 }
 
 //-----------------------------------------------------------------------------
