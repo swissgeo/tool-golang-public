@@ -36,6 +36,11 @@ Note that if the tests run is on-going, the command waits until its is finished.
 		if e != nil {
 			log.Fatal(e)
 		}
+		np, e := cmd.Flags().GetBool("no-progress")
+		if e != nil {
+			log.Fatal(e)
+		}
+		showProgress := !np
 
 		input := &codebuild.BatchGetBuildsInput{
 			Ids: []string{id},
@@ -50,7 +55,7 @@ Note that if the tests run is on-going, the command waits until its is finished.
 		}
 		if !r.Builds[0].BuildComplete {
 			cPrintln(fmtc.NoColor, "E2E Tests run found, run in progress waiting to complete...")
-			r = waitForBuild(ctx, client, id)
+			r = waitForBuild(ctx, client, id, showProgress)
 		} else {
 			cPrintf(fmtc.NoColor, "E2E Tests run found and completed at %s\n", r.Builds[0].EndTime.UTC().String())
 		}
@@ -58,6 +63,10 @@ Note that if the tests run is on-going, the command waits until its is finished.
 		if e != nil {
 			log.Fatalf("failed to print test reports: %s", e)
 		}
+	},
+	ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
+		// Avoid doing file/folder completion after the command
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	},
 }
 

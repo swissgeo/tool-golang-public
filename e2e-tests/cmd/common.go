@@ -10,9 +10,12 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/codebuild"
 	"github.com/aws/aws-sdk-go-v2/service/codebuild/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/geoadmin/tool-golang-bgdi/lib/fmtc"
+	"github.com/geoadmin/tool-golang-bgdi/lib/str"
 	"github.com/spf13/cobra"
 )
 
@@ -49,15 +52,48 @@ func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
 	if e != nil {
 		log.Fatal(e)
 	}
+	role := cmd.Flag("role").Value.String()
 	var cfg aws.Config
-	if noProfile {
-		cfg, e = config.LoadDefaultConfig(ctx)
-	} else {
-		cfg, e = config.LoadDefaultConfig(ctx, config.WithSharedConfigProfile("swisstopo-bgdi-builder"))
-	}
 
-	if e != nil {
-		log.Fatalf("failed to load configuration: %v", e)
+	switch {
+	case role != "":
+		var cred *sts.AssumeRoleOutput
+		cfg, e = config.LoadDefaultConfig(ctx, config.WithRegion("eu-central-1"))
+		if e != nil {
+			log.Fatalf("failed to load configuration: %v", e)
+		}
+		splittedRole := strings.Split(role, "/")
+		roleName := splittedRole[len(splittedRole)-1]
+		stsClient := sts.NewFromConfig(cfg)
+		cred, e = stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
+			RoleArn:         &role,
+			RoleSessionName: str.Ptr(fmt.Sprintf("ToolE2ETestsAssumeRole%s", roleName)),
+			DurationSeconds: aws.Int32(45 * 60), //nolint:mnd
+		})
+		if e != nil {
+			log.Fatalf("failed to assume role %s: %v", role, e)
+		}
+
+		cfg, e = config.LoadDefaultConfig(ctx, config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(
+				*cred.Credentials.AccessKeyId,
+				*cred.Credentials.SecretAccessKey,
+				*cred.Credentials.SessionToken,
+			),
+		))
+		if e != nil {
+			log.Fatalf("failed to load configuration with role credentials: %v", e)
+		}
+	case noProfile:
+		cfg, e = config.LoadDefaultConfig(ctx, config.WithRegion("eu-central-1"))
+		if e != nil {
+			log.Fatalf("failed to load configuration: %v", e)
+		}
+	default:
+		cfg, e = config.LoadDefaultConfig(ctx, config.WithSharedConfigProfile("swisstopo-bgdi-builder"))
+		if e != nil {
+			log.Fatalf("failed to load configuration: %v", e)
+		}
 	}
 
 	client := codebuild.NewFromConfig(cfg)
@@ -67,21 +103,35 @@ func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
 
 //-----------------------------------------------------------------------------
 
-func waitForBuild(ctx context.Context, client *codebuild.Client, buildID string) *codebuild.BatchGetBuildsOutput {
+func waitForBuild(
+	ctx context.Context,
+	client *codebuild.Client,
+	buildID string,
+	showProgress bool,
+) *codebuild.BatchGetBuildsOutput {
 	var result *codebuild.BatchGetBuildsOutput
 	var e error
 
 	input := &codebuild.BatchGetBuildsInput{
 		Ids: []string{buildID},
 	}
+	c := 0
 	for {
-		time.Sleep(5 * time.Second) //nolint:mnd
+		const waitTime = 1
+		if showProgress {
+			cPrintf(fmtc.NoColor, "\rWating for result: %ds ", c)
+			c += waitTime
+		}
+		time.Sleep(waitTime * time.Second)
 		result, e = client.BatchGetBuilds(ctx, input)
 		if e != nil {
 			log.Fatalf("failed to get build status: %v", e)
 		}
 		if len(result.Builds) == 0 {
 			log.Fatalf("no build found with id: %s", buildID)
+		}
+		if showProgress {
+			cPrintln(fmtc.NoColor, "")
 		}
 		if result.Builds[0].BuildComplete {
 			fmt.Printf("E2E tests finished with status: %s\n", result.Builds[0].BuildStatus)

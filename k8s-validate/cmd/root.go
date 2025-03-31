@@ -65,33 +65,4 @@ func init() {
 By default it is set to 0 which means that it use the number of available CPU
 to determine how many parallel jobs are executed.`,
 	)
-
-	// Add completion command
-	rootCmd.AddCommand(&cobra.Command{
-		Use:   "completion [bash|zsh|fish|powershell]",
-		Short: "Generate shell completion script",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			switch args[0] {
-			case "bash":
-				if err := rootCmd.GenBashCompletion(os.Stdout); err != nil {
-					cmd.PrintErrln("Error generating Bash completion:", err)
-				}
-			case "zsh":
-				if err := rootCmd.GenZshCompletion(os.Stdout); err != nil {
-					cmd.PrintErrln("Error generating Zsh completion:", err)
-				}
-			case "fish":
-				if err := rootCmd.GenFishCompletion(os.Stdout, true); err != nil {
-					cmd.PrintErrln("Error generating Fish completion:", err)
-				}
-			case "powershell":
-				if err := rootCmd.GenPowerShellCompletionWithDesc(os.Stdout); err != nil {
-					cmd.PrintErrln("Error generating PowerShell completion:", err)
-				}
-			default:
-				cmd.PrintErrln("Unsupported shell type")
-			}
-		},
-	})
 }
