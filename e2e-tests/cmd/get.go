@@ -41,6 +41,10 @@ Note that if the tests run is on-going, the command waits until its is finished.
 			log.Fatal(e)
 		}
 		showProgress := !np
+		interval, e := cmd.Flags().GetInt("interval")
+		if e != nil {
+			log.Fatal(e)
+		}
 
 		input := &codebuild.BatchGetBuildsInput{
 			Ids: []string{id},
@@ -55,7 +59,7 @@ Note that if the tests run is on-going, the command waits until its is finished.
 		}
 		if !r.Builds[0].BuildComplete {
 			cPrintln(fmtc.NoColor, "E2E Tests run found, run in progress waiting to complete...")
-			r = waitForBuild(ctx, client, id, showProgress)
+			r = waitForBuild(ctx, client, id, showProgress, interval)
 		} else {
 			cPrintf(fmtc.NoColor, "E2E Tests run found and completed at %s\n", r.Builds[0].EndTime.UTC().String())
 		}

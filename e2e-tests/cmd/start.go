@@ -25,7 +25,7 @@ var startCmd = &cobra.Command{
 	Long:  `Start E2E tests on Codebuild and wait for the result.`,
 	Run: func(cmd *cobra.Command, _ []string) {
 		initPrint(cmd)
-		staging, tests, revision, doDataTest, showProgress := getFlags(cmd)
+		staging, tests, revision, doDataTest, showProgress, interval := getFlags(cmd)
 		printStart(staging, tests)
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -36,7 +36,7 @@ var startCmd = &cobra.Command{
 		rs := startBuild(ctx, client, staging, tests, revision, doDataTest)
 
 		// Wait for the build to finish
-		re := waitForBuild(ctx, client, *rs.Build.Id, showProgress)
+		re := waitForBuild(ctx, client, *rs.Build.Id, showProgress, interval)
 
 		printTestResult(ctx, client, re)
 	},
@@ -80,7 +80,7 @@ func printStart(staging string, tests []string) {
 
 // -----------------------------------------------------------------------------
 // Get start command flags
-func getFlags(cmd *cobra.Command) (string, []string, string, bool, bool) {
+func getFlags(cmd *cobra.Command) (string, []string, string, bool, bool, int) {
 	staging := cmd.Flag("staging").Value.String()
 	revision := cmd.Flag("revision").Value.String()
 	doDataTest, err := cmd.Flags().GetBool("data-tests")
@@ -96,7 +96,11 @@ func getFlags(cmd *cobra.Command) (string, []string, string, bool, bool) {
 		log.Fatal(err)
 	}
 	showProgress := !np
-	return staging, tests, revision, doDataTest, showProgress
+	interval, err := cmd.Flags().GetInt("interval")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return staging, tests, revision, doDataTest, showProgress, interval
 }
 
 //-----------------------------------------------------------------------------
