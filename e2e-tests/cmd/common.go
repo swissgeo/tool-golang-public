@@ -108,6 +108,7 @@ func waitForBuild(
 	client *codebuild.Client,
 	buildID string,
 	showProgress bool,
+	interval int,
 ) *codebuild.BatchGetBuildsOutput {
 	var result *codebuild.BatchGetBuildsOutput
 	var e error
@@ -117,12 +118,11 @@ func waitForBuild(
 	}
 	c := 0
 	for {
-		const waitTime = 1
 		if showProgress {
 			cPrintf(fmtc.NoColor, "\rWating for result: %ds ", c)
-			c += waitTime
+			c += interval
 		}
-		time.Sleep(waitTime * time.Second)
+		time.Sleep(time.Duration(interval) * time.Second)
 		result, e = client.BatchGetBuilds(ctx, input)
 		if e != nil {
 			log.Fatalf("failed to get build status: %v", e)

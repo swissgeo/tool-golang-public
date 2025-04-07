@@ -49,6 +49,7 @@ func init() {
 	rootCmd.PersistentFlags().Bool("no-profile", false, "Do not use AWS profile swisstopo-bgdi-builder for credentials")
 	rootCmd.PersistentFlags().String("role", "", "Role to assume for AWS permissions")
 	rootCmd.PersistentFlags().Bool("no-progress", false, "For long running command don't display progress indicator")
+	rootCmd.PersistentFlags().Int("interval", 1, "Interval in seconds to check the E2E tests status")
 }
 
 //-----------------------------------------------------------------------------
