@@ -88,6 +88,15 @@ func getFlags(cmd *cobra.Command) (string, []string, string, bool, bool, int) {
 		log.Fatal(err)
 	}
 	tests, err := cmd.Flags().GetStringArray("tests")
+	// Append the "tests." prefix to all tests
+	tests = func() []string {
+		out := make([]string, len(tests))
+		for i, t := range tests {
+			out[i] = "tests." + t
+		}
+		return out
+	}()
+
 	if err != nil {
 		log.Fatal(err)
 	}
