@@ -1,6 +1,6 @@
 # Generic docker file for all tools that needs to be build
 # Use an official Golang image as the base
-FROM golang:1.23 AS builder
+FROM golang:1.23.8 AS builder
 
 WORKDIR /tool
 

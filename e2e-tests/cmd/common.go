@@ -157,6 +157,8 @@ func printTestResult(ctx context.Context, client *codebuild.Client, result *code
 			log.Fatal(e)
 		}
 	}
+	// For E2E tests error we use exit code 2 to differentiate between e2e-tests command failure
+	os.Exit(2) //nolint:mnd
 }
 
 //-----------------------------------------------------------------------------
