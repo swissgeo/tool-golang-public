@@ -1,12 +1,18 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
+	"github.com/geoadmin/tool-golang-bgdi/lib/fmtc"
 	"github.com/geoadmin/tool-golang-bgdi/lib/version"
 	"github.com/spf13/cobra"
 )
+
+var ErrTestFailed = errors.New("test failed")
+
+const ErrTestFailedCode = 2
 
 //-----------------------------------------------------------------------------
 
@@ -16,6 +22,8 @@ var rootCmd = &cobra.Command{
 	Short: "BGDI CLI tool to control E2E tests",
 	Long: `This tool use the AWS SDK to control Codebuild to start E2E tests on Codebuild
 and get the final reports`,
+	SilenceUsage: true,
+	SilenceErrors: true,
 }
 
 //-----------------------------------------------------------------------------
@@ -35,7 +43,10 @@ var versionCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		if errors.Is(err, ErrTestFailed) {
+			os.Exit(ErrTestFailedCode)
+		}
+		fmt.Fprintln(os.Stderr, string(fmtc.Red) + err.Error() + string(fmtc.Reset))
 		os.Exit(1)
 	}
 }
