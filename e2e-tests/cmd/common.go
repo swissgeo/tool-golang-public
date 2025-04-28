@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -26,10 +25,10 @@ var cPrintf func(c fmtc.Color, format string, v ...any) = fmtc.Printf
 
 //-----------------------------------------------------------------------------
 
-func initPrint(cmd *cobra.Command) {
+func initPrint(cmd *cobra.Command) error {
 	noColor, e := cmd.Flags().GetBool("no-color")
 	if e != nil {
-		log.Fatal(e)
+		return e
 	}
 
 	if noColor {
@@ -42,15 +41,16 @@ func initPrint(cmd *cobra.Command) {
 	} else {
 		log.SetFlags(0)
 	}
+	return nil
 }
 
 //-----------------------------------------------------------------------------
 
 // Returns a CodeBuild client
-func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
+func getClient(ctx context.Context, cmd *cobra.Command) (*codebuild.Client, error) {
 	noProfile, e := cmd.Flags().GetBool("no-profile")
 	if e != nil {
-		log.Fatal(e)
+		return nil, e
 	}
 	role := cmd.Flag("role").Value.String()
 	var cfg aws.Config
@@ -60,7 +60,7 @@ func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
 		var cred *sts.AssumeRoleOutput
 		cfg, e = config.LoadDefaultConfig(ctx, config.WithRegion("eu-central-1"))
 		if e != nil {
-			log.Fatalf("failed to load configuration: %v", e)
+			return nil, fmt.Errorf("failed to load configuration: %w", e)
 		}
 		splittedRole := strings.Split(role, "/")
 		roleName := splittedRole[len(splittedRole)-1]
@@ -71,7 +71,7 @@ func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
 			DurationSeconds: aws.Int32(45 * 60), //nolint:mnd
 		})
 		if e != nil {
-			log.Fatalf("failed to assume role %s: %v", role, e)
+			return nil, fmt.Errorf("failed to assume role %s: %w", role, e)
 		}
 
 		cfg, e = config.LoadDefaultConfig(ctx, config.WithCredentialsProvider(
@@ -82,23 +82,23 @@ func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
 			),
 		))
 		if e != nil {
-			log.Fatalf("failed to load configuration with role credentials: %v", e)
+			return nil, fmt.Errorf("failed to load configuration with role credentials: %w", e)
 		}
 	case noProfile:
 		cfg, e = config.LoadDefaultConfig(ctx, config.WithRegion("eu-central-1"))
 		if e != nil {
-			log.Fatalf("failed to load configuration: %v", e)
+			return nil, fmt.Errorf("failed to load configuration: %w", e)
 		}
 	default:
 		cfg, e = config.LoadDefaultConfig(ctx, config.WithSharedConfigProfile("swisstopo-bgdi-builder"))
 		if e != nil {
-			log.Fatalf("failed to load configuration: %v", e)
+			return nil, fmt.Errorf("failed to load configuration: %w", e)
 		}
 	}
 
 	client := codebuild.NewFromConfig(cfg)
 
-	return client
+	return client, nil
 }
 
 //-----------------------------------------------------------------------------
@@ -109,7 +109,7 @@ func waitForBuild(
 	buildID string,
 	showProgress bool,
 	interval int,
-) *codebuild.BatchGetBuildsOutput {
+) (*codebuild.BatchGetBuildsOutput, error) {
 	var result *codebuild.BatchGetBuildsOutput
 	var e error
 
@@ -119,19 +119,16 @@ func waitForBuild(
 	c := 0
 	for {
 		if showProgress {
-			cPrintf(fmtc.NoColor, "\rWating for result: %ds ", c)
+			cPrintf(fmtc.NoColor, "Waiting for result: %ds\r", c)
 			c += interval
 		}
 		time.Sleep(time.Duration(interval) * time.Second)
 		result, e = client.BatchGetBuilds(ctx, input)
 		if e != nil {
-			log.Fatalf("failed to get build status: %v", e)
+			return nil, fmt.Errorf("failed to get build status: %w", e)
 		}
 		if len(result.Builds) == 0 {
-			log.Fatalf("no build found with id: %s", buildID)
-		}
-		if showProgress {
-			cPrintln(fmtc.NoColor, "")
+			return nil, fmt.Errorf("no build found with id: %s", buildID)
 		}
 		if result.Builds[0].BuildComplete {
 			fmt.Printf("E2E tests finished with status: %s\n", result.Builds[0].BuildStatus)
@@ -139,26 +136,26 @@ func waitForBuild(
 		}
 	}
 
-	return result
+	return result, nil
 }
 
 //-----------------------------------------------------------------------------
 
-func printTestResult(ctx context.Context, client *codebuild.Client, result *codebuild.BatchGetBuildsOutput) {
+func printTestResult(ctx context.Context, client *codebuild.Client, result *codebuild.BatchGetBuildsOutput) error {
 	if result.Builds[0].BuildStatus == types.StatusTypeSucceeded {
 		cPrintln(fmtc.Green, "E2E tests succeeded")
-		os.Exit(0)
+		return nil
 	}
 	// If the build failed, print the reports
 	cPrintln(fmtc.Red, "E2E tests failed !")
 	for _, report := range result.Builds[0].ReportArns {
 		e := printTestReport(ctx, client, report, *result.Builds[0].Id)
 		if e != nil {
-			log.Fatal(e)
+			return e
 		}
 	}
 	// For E2E tests error we use exit code 2 to differentiate between e2e-tests command failure
-	os.Exit(2) //nolint:mnd
+	return ErrTestFailed
 }
 
 //-----------------------------------------------------------------------------

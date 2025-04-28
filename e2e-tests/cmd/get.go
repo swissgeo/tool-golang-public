@@ -5,7 +5,7 @@ package cmd
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -24,26 +24,32 @@ var getCmd = &cobra.Command{
 	Long: `Get an E2E tests run status.
 
 Note that if the tests run is on-going, the command waits until its is finished.`,
-	Run: func(cmd *cobra.Command, _ []string) {
-		initPrint(cmd)
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		e := initPrint(cmd)
+		if e != nil {
+			return e
+		}
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop() // Ensure cleanup
 
-		client := getClient(ctx, cmd)
+		client, e := getClient(ctx, cmd)
+		if e != nil {
+			return e
+		}
 
 		id, e := cmd.Flags().GetString("test-id")
 		if e != nil {
-			log.Fatal(e)
+			return e
 		}
 		np, e := cmd.Flags().GetBool("no-progress")
 		if e != nil {
-			log.Fatal(e)
+			return e
 		}
 		showProgress := !np
 		interval, e := cmd.Flags().GetInt("interval")
 		if e != nil {
-			log.Fatal(e)
+			return e
 		}
 
 		input := &codebuild.BatchGetBuildsInput{
@@ -51,22 +57,23 @@ Note that if the tests run is on-going, the command waits until its is finished.
 		}
 		r, e := client.BatchGetBuilds(ctx, input)
 		if e != nil {
-			log.Fatalf("failed to get tests run %s: %s", id, e)
+			return fmt.Errorf("failed to get tests run %s: %w", id, e)
 		}
 
 		if len(r.Builds) == 0 {
-			log.Fatalf("failed to get tests run %s: not found", id)
+			return fmt.Errorf("failed to get tests run %s: not found", id)
 		}
 		if !r.Builds[0].BuildComplete {
 			cPrintln(fmtc.NoColor, "E2E Tests run found, run in progress waiting to complete...")
-			r = waitForBuild(ctx, client, id, showProgress, interval)
+			r, e = waitForBuild(ctx, client, id, showProgress, interval)
+			if e != nil {
+				return e
+			}
 		} else {
 			cPrintf(fmtc.NoColor, "E2E Tests run found and completed at %s\n", r.Builds[0].EndTime.UTC().String())
 		}
-		e = printTestReport(ctx, client, r.Builds[0].ReportArns[0], *r.Builds[0].Id)
-		if e != nil {
-			log.Fatalf("failed to print test reports: %s", e)
-		}
+
+		return printTestResult(ctx, client, r)
 	},
 	ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
 		// Avoid doing file/folder completion after the command
