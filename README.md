@@ -57,3 +57,4 @@ cobra-cli init <app-name>
 
 - [k8s-validate](./k8s-validate/README.md)
 - [e2e-tests](./e2e-tests/README.md)
+- [cloudfront-logs](./cloudfront-logs/README.md)
