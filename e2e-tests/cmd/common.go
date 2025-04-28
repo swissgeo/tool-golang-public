@@ -119,7 +119,7 @@ func waitForBuild(
 	c := 0
 	for {
 		if showProgress {
-			cPrintf(fmtc.NoColor, "\rWaiting for result: %ds ", c)
+			cPrintf(fmtc.NoColor, "Waiting for result: %ds\r", c)
 			c += interval
 		}
 		time.Sleep(time.Duration(interval) * time.Second)
@@ -129,9 +129,6 @@ func waitForBuild(
 		}
 		if len(result.Builds) == 0 {
 			return nil, fmt.Errorf("no build found with id: %s", buildID)
-		}
-		if showProgress {
-			cPrintln(fmtc.NoColor, "")
 		}
 		if result.Builds[0].BuildComplete {
 			fmt.Printf("E2E tests finished with status: %s\n", result.Builds[0].BuildStatus)
