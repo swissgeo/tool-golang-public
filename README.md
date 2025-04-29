@@ -9,6 +9,7 @@ This repository contains CLI tools written in golang to manage BGDI services and
 - [Repository structure](#repository-structure)
 - [Naming convention](#naming-convention)
 - [Formatting and linting](#formatting-and-linting)
+- [Create new application skeleton](#create-new-application-skeleton)
 - [CLI commands](#cli-commands)
 
 ## Repository structure
@@ -45,7 +46,15 @@ make format
 make lint
 ```
 
+## Create new application skeleton
+
+```bash
+go install github.com/spf13/cobra-cli@latest
+cobra-cli init <app-name>
+```
+
 ## CLI commands
 
 - [k8s-validate](./k8s-validate/README.md)
 - [e2e-tests](./e2e-tests/README.md)
+- [cloudfront-logs](./cloudfront-logs/README.md)

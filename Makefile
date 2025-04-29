@@ -32,6 +32,8 @@ help:
 	@echo -e " \033[1mFORMATING, LINTING AND TESTING TOOLS TARGETS\033[0m "
 	@echo "- format             	Format the go source code"
 	@echo "- lint               	Lint the go source code"
+	@echo "- format-lint            Format and lint the go source code"
+	@echo "- test                   Runs tests"
 	@echo -e " \033[1mDocker TARGETS\033[0m "
 	@echo "- dockerlogin        	Login to the AWS ECR registry for pulling/pushing docker images"
 	@echo "- dockerbuild-e2e-tests  Build the tool e2e-tests locally (with tag := $(E2E_TESTS_DOCKER_IMG_LOCAL_TAG))"
@@ -52,12 +54,17 @@ setup:
 format:
 	goimports -w .
 
-
 .PHONY: lint
 lint:
 	golangci-lint run
 	govulncheck -show verbose ./...
 
+.PHONY: format-lint
+format-lint: format lint
+
+.PHONY: test
+test:
+	go test ./... -v -count=1 # count=1 disables test caching
 
 # Docker related functions.
 
