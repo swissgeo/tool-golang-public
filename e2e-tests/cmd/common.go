@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -26,10 +25,10 @@ var cPrintf func(c fmtc.Color, format string, v ...any) = fmtc.Printf
 
 //-----------------------------------------------------------------------------
 
-func initPrint(cmd *cobra.Command) {
+func initPrint(cmd *cobra.Command) error {
 	noColor, e := cmd.Flags().GetBool("no-color")
 	if e != nil {
-		log.Fatal(e)
+		return e
 	}
 
 	if noColor {
@@ -42,15 +41,16 @@ func initPrint(cmd *cobra.Command) {
 	} else {
 		log.SetFlags(0)
 	}
+	return nil
 }
 
 //-----------------------------------------------------------------------------
 
 // Returns a CodeBuild client
-func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
+func getClient(ctx context.Context, cmd *cobra.Command) (*codebuild.Client, error) {
 	noProfile, e := cmd.Flags().GetBool("no-profile")
 	if e != nil {
-		log.Fatal(e)
+		return nil, e
 	}
 	role := cmd.Flag("role").Value.String()
 	var cfg aws.Config
@@ -60,7 +60,7 @@ func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
 		var cred *sts.AssumeRoleOutput
 		cfg, e = config.LoadDefaultConfig(ctx, config.WithRegion("eu-central-1"))
 		if e != nil {
-			log.Fatalf("failed to load configuration: %v", e)
+			return nil, fmt.Errorf("failed to load configuration: %w", e)
 		}
 		splittedRole := strings.Split(role, "/")
 		roleName := splittedRole[len(splittedRole)-1]
@@ -71,7 +71,7 @@ func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
 			DurationSeconds: aws.Int32(45 * 60), //nolint:mnd
 		})
 		if e != nil {
-			log.Fatalf("failed to assume role %s: %v", role, e)
+			return nil, fmt.Errorf("failed to assume role %s: %w", role, e)
 		}
 
 		cfg, e = config.LoadDefaultConfig(ctx, config.WithCredentialsProvider(
@@ -82,23 +82,23 @@ func getClient(ctx context.Context, cmd *cobra.Command) *codebuild.Client {
 			),
 		))
 		if e != nil {
-			log.Fatalf("failed to load configuration with role credentials: %v", e)
+			return nil, fmt.Errorf("failed to load configuration with role credentials: %w", e)
 		}
 	case noProfile:
 		cfg, e = config.LoadDefaultConfig(ctx, config.WithRegion("eu-central-1"))
 		if e != nil {
-			log.Fatalf("failed to load configuration: %v", e)
+			return nil, fmt.Errorf("failed to load configuration: %w", e)
 		}
 	default:
 		cfg, e = config.LoadDefaultConfig(ctx, config.WithSharedConfigProfile("swisstopo-bgdi-builder"))
 		if e != nil {
-			log.Fatalf("failed to load configuration: %v", e)
+			return nil, fmt.Errorf("failed to load configuration: %w", e)
 		}
 	}
 
 	client := codebuild.NewFromConfig(cfg)
 
-	return client
+	return client, nil
 }
 
 //-----------------------------------------------------------------------------
@@ -109,7 +109,7 @@ func waitForBuild(
 	buildID string,
 	showProgress bool,
 	interval int,
-) *codebuild.BatchGetBuildsOutput {
+) (*codebuild.BatchGetBuildsOutput, error) {
 	var result *codebuild.BatchGetBuildsOutput
 	var e error
 
@@ -119,19 +119,16 @@ func waitForBuild(
 	c := 0
 	for {
 		if showProgress {
-			cPrintf(fmtc.NoColor, "\rWating for result: %ds ", c)
+			cPrintf(fmtc.NoColor, "Waiting for result: %ds\r", c)
 			c += interval
 		}
 		time.Sleep(time.Duration(interval) * time.Second)
 		result, e = client.BatchGetBuilds(ctx, input)
 		if e != nil {
-			log.Fatalf("failed to get build status: %v", e)
+			return nil, fmt.Errorf("failed to get build status: %w", e)
 		}
 		if len(result.Builds) == 0 {
-			log.Fatalf("no build found with id: %s", buildID)
-		}
-		if showProgress {
-			cPrintln(fmtc.NoColor, "")
+			return nil, fmt.Errorf("no build found with id: %s", buildID)
 		}
 		if result.Builds[0].BuildComplete {
 			fmt.Printf("E2E tests finished with status: %s\n", result.Builds[0].BuildStatus)
@@ -139,46 +136,67 @@ func waitForBuild(
 		}
 	}
 
-	return result
+	return result, nil
 }
 
 //-----------------------------------------------------------------------------
 
-func printTestResult(ctx context.Context, client *codebuild.Client, result *codebuild.BatchGetBuildsOutput) {
+func printTestResult(
+	ctx context.Context,
+	client *codebuild.Client,
+	result *codebuild.BatchGetBuildsOutput,
+	detailed bool,
+) error {
 	if result.Builds[0].BuildStatus == types.StatusTypeSucceeded {
 		cPrintln(fmtc.Green, "E2E tests succeeded")
-		os.Exit(0)
+		return nil
 	}
 	// If the build failed, print the reports
 	cPrintln(fmtc.Red, "E2E tests failed !")
 	for _, report := range result.Builds[0].ReportArns {
-		e := printTestReport(ctx, client, report, *result.Builds[0].Id)
+		e := printTestReport(ctx, client, report, *result.Builds[0].Id, detailed)
 		if e != nil {
-			log.Fatal(e)
+			return e
 		}
 	}
 	// For E2E tests error we use exit code 2 to differentiate between e2e-tests command failure
-	os.Exit(2) //nolint:mnd
+	return ErrTestFailed
 }
 
 //-----------------------------------------------------------------------------
 
-func printTestReport(ctx context.Context, client *codebuild.Client, reportArn string, buildID string) error {
-	var e error
+func printTestReport(
+	ctx context.Context,
+	client *codebuild.Client,
+	reportArn string,
+	buildID string,
+	detailed bool,
+) error {
+	// Get the number of tests
+	input := &codebuild.BatchGetReportsInput{
+		ReportArns: []string{reportArn},
+	}
+	r, e := client.BatchGetReports(ctx, input)
+	if e != nil {
+		return fmt.Errorf("failed to describe test case for reportARN=%s: %w", reportArn, e)
+	}
+	nbTests := int(*r.Reports[0].TestSummary.Total)
 
 	// First get the errors
-	e = printTestReportByStatus(ctx, client, reportArn, "ERROR")
+	nbErr, e := printTestReportByStatus(ctx, client, reportArn, "ERROR", detailed)
 	if e != nil {
 		return e
 	}
 
 	// Then gets the failure
-	e = printTestReportByStatus(ctx, client, reportArn, "FAILED")
+	nbFails, e := printTestReportByStatus(ctx, client, reportArn, "FAILED", detailed)
 	if e != nil {
 		return e
 	}
 
-	cPrintln(fmtc.Red, "\nTest report link:")
+	cPrintf(fmtc.Red, "\nTests failures/errors %d%% (%d/%d)\n", (nbErr+nbFails)*100/nbTests, nbErr+nbFails, nbTests)
+
+	cPrintln(fmtc.Red, "Test report link:")
 	cPrintln(fmtc.Red, "-----------------")
 	cPrintln(fmtc.Red, buildReportLink(projectNameFromBuildID(buildID), reportArn))
 
@@ -187,7 +205,13 @@ func printTestReport(ctx context.Context, client *codebuild.Client, reportArn st
 
 //-----------------------------------------------------------------------------
 
-func printTestReportByStatus(ctx context.Context, client *codebuild.Client, reportArn string, status string) error {
+func printTestReportByStatus(
+	ctx context.Context,
+	client *codebuild.Client,
+	reportArn string,
+	status string,
+	detailed bool,
+) (int, error) {
 	filter := &types.TestCaseFilter{
 		Status: &status,
 	}
@@ -197,23 +221,25 @@ func printTestReportByStatus(ctx context.Context, client *codebuild.Client, repo
 	}
 	r, e := client.DescribeTestCases(ctx, input)
 	if e != nil {
-		return fmt.Errorf("failed to describe test case %s for reportARN=%s: %w", status, reportArn, e)
+		return 0, fmt.Errorf("failed to describe test case %s for reportARN=%s: %w", status, reportArn, e)
 	}
-	printTestCases(r.TestCases, status)
+	printTestCases(r.TestCases, status, detailed)
 
-	return nil
+	return len(r.TestCases), nil
 }
 
 //-----------------------------------------------------------------------------
 
-func printTestCases(tests []types.TestCase, statusType string) {
+func printTestCases(tests []types.TestCase, statusType string, detailed bool) {
 	if len(tests) > 0 {
-		cPrintf(fmtc.Red, "Tests with %s:\n", statusType)
-		cPrintf(fmtc.Red, "-----------%s-\n", strings.Repeat("-", len(statusType)))
+		cPrintf(fmtc.Red, "\n%-3d tests %s:\n", len(tests), statusType)
+		cPrintf(fmtc.Red, "----------%s-\n", strings.Repeat("-", len(statusType)))
 		for _, t := range tests {
 			const nanoSeconds int64 = 1_000_000_000
-			cPrintf(fmtc.Red, "- %s.%s (%d s)", *t.Prefix, *t.Name, *t.DurationInNanoSeconds/nanoSeconds)
-			cPrintf(fmtc.Red, "    %s\n", strings.ReplaceAll(*t.Message, "\n", "\n    "))
+			cPrintf(fmtc.Red, "- %s.%s (%d s)\n", *t.Prefix, *t.Name, *t.DurationInNanoSeconds/nanoSeconds)
+			if detailed {
+				cPrintf(fmtc.Red, "    %s\n\n", strings.ReplaceAll(*t.Message, "\n", "\n    "))
+			}
 		}
 	}
 }

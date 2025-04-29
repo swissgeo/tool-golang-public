@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -17,7 +18,7 @@ var rootCmd = &cobra.Command{
 	Use:   "k8s-validate",
 	Short: "Validate all kubernetes manifests in subdirectories",
 	Long:  `Run kustomization build in all subfolders containing a kustomization.yaml file`,
-	Run: func(_ *cobra.Command, _ []string) {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var workers int
 		if Parallel == 0 {
 			workers = runtime.NumCPU()
@@ -26,8 +27,9 @@ var rootCmd = &cobra.Command{
 		}
 		var valid = ValidateKustomize(workers, FailFast)
 		if !valid {
-			os.Exit(1)
+			return errors.New("validation failed")
 		}
+		return nil
 	},
 }
 

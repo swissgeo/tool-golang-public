@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -18,27 +18,53 @@ import (
 
 //-----------------------------------------------------------------------------
 
+type StartCmdFlags struct {
+	Staging      string
+	Tests        []string
+	Revision     string
+	DoDataTest   bool
+	ShowProgress bool
+	Interval     int
+}
+
+//-----------------------------------------------------------------------------
+
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start E2E tests and wait for the result",
 	Long:  `Start E2E tests on Codebuild and wait for the result.`,
-	Run: func(cmd *cobra.Command, _ []string) {
-		initPrint(cmd)
-		staging, tests, revision, doDataTest, showProgress, interval := getFlags(cmd)
-		printStart(staging, tests)
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		e := initPrint(cmd)
+		if e != nil {
+			return e
+		}
+		flags, e := getCmdStartFlags(cmd)
+		if e != nil {
+			return e
+		}
+		printStart(flags.Staging, flags.Tests)
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop() // Ensure cleanup
 
-		client := getClient(ctx, cmd)
+		client, e := getClient(ctx, cmd)
+		if e != nil {
+			return e
+		}
 
-		rs := startBuild(ctx, client, staging, tests, revision, doDataTest)
+		rs, e := startBuild(ctx, client, flags)
+		if e != nil {
+			return e
+		}
 
 		// Wait for the build to finish
-		re := waitForBuild(ctx, client, *rs.Build.Id, showProgress, interval)
+		re, e := waitForBuild(ctx, client, *rs.Build.Id, flags.ShowProgress, flags.Interval)
+		if e != nil {
+			return e
+		}
 
-		printTestResult(ctx, client, re)
+		return printTestResult(ctx, client, re, false)
 	},
 	ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
 		// Avoid doing file/folder completion after the command
@@ -80,14 +106,21 @@ func printStart(staging string, tests []string) {
 
 // -----------------------------------------------------------------------------
 // Get start command flags
-func getFlags(cmd *cobra.Command) (string, []string, string, bool, bool, int) {
-	staging := cmd.Flag("staging").Value.String()
-	revision := cmd.Flag("revision").Value.String()
+func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
+	var flags StartCmdFlags
+	flags.Staging = cmd.Flag("staging").Value.String()
+	flags.Revision = cmd.Flag("revision").Value.String()
 	doDataTest, err := cmd.Flags().GetBool("data-tests")
 	if err != nil {
-		log.Fatal(err)
+		return StartCmdFlags{}, err
 	}
+	flags.DoDataTest = doDataTest
+
 	tests, err := cmd.Flags().GetStringArray("tests")
+	if err != nil {
+		return StartCmdFlags{}, err
+	}
+
 	// Append the "tests." prefix to all tests
 	tests = func() []string {
 		out := make([]string, len(tests))
@@ -96,20 +129,22 @@ func getFlags(cmd *cobra.Command) (string, []string, string, bool, bool, int) {
 		}
 		return out
 	}()
+	flags.Tests = tests
 
-	if err != nil {
-		log.Fatal(err)
-	}
 	np, err := cmd.Flags().GetBool("no-progress")
 	if err != nil {
-		log.Fatal(err)
+		return StartCmdFlags{}, err
 	}
 	showProgress := !np
+	flags.ShowProgress = showProgress
+
 	interval, err := cmd.Flags().GetInt("interval")
 	if err != nil {
-		log.Fatal(err)
+		return StartCmdFlags{}, err
 	}
-	return staging, tests, revision, doDataTest, showProgress, interval
+	flags.Interval = interval
+
+	return flags, nil
 }
 
 //-----------------------------------------------------------------------------
@@ -117,18 +152,15 @@ func getFlags(cmd *cobra.Command) (string, []string, string, bool, bool, int) {
 func startBuild(
 	ctx context.Context,
 	client *codebuild.Client,
-	staging string,
-	tests []string,
-	revision string,
-	doDataTest bool,
-) *codebuild.StartBuildOutput {
+	flags StartCmdFlags,
+) (*codebuild.StartBuildOutput, error) {
 	d := "0"
-	if doDataTest {
+	if flags.DoDataTest {
 		d = "1"
 	}
 	input := &codebuild.StartBuildInput{
-		ProjectName:   str.Ptr(projectName(staging)),
-		SourceVersion: &revision,
+		ProjectName:   str.Ptr(projectName(flags.Staging)),
+		SourceVersion: &flags.Revision,
 		EnvironmentVariablesOverride: []types.EnvironmentVariable{
 			{
 				Name:  str.Ptr("IS_PULL_REQUEST"),
@@ -142,7 +174,7 @@ func startBuild(
 			},
 			{
 				Name:  str.Ptr("TEST_NAMES"),
-				Value: str.Ptr(strings.Join(tests, ",")),
+				Value: str.Ptr(strings.Join(flags.Tests, ",")),
 				Type:  types.EnvironmentVariableTypePlaintext,
 			},
 		},
@@ -150,9 +182,9 @@ func startBuild(
 
 	result, err := client.StartBuild(ctx, input)
 	if err != nil {
-		log.Fatalf("failed to start build: %v", err)
+		return nil, fmt.Errorf("failed to start build: %w", err)
 	}
 	cPrintf(fmtc.NoColor, "E2E tests started with ID: %s\n", *result.Build.Id)
 	cPrintln(fmtc.Yellow, buildLogLink(*result.Build.Id))
-	return result
+	return result, nil
 }
