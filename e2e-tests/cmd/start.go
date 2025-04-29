@@ -18,6 +18,17 @@ import (
 
 //-----------------------------------------------------------------------------
 
+type StartCmdFlags struct {
+	Staging      string
+	Tests        []string
+	Revision     string
+	DoDataTest   bool
+	ShowProgress bool
+	Interval     int
+}
+
+//-----------------------------------------------------------------------------
+
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -28,11 +39,11 @@ var startCmd = &cobra.Command{
 		if e != nil {
 			return e
 		}
-		staging, tests, revision, doDataTest, showProgress, interval, e := getFlags(cmd)
+		flags, e := getCmdStartFlags(cmd)
 		if e != nil {
 			return e
 		}
-		printStart(staging, tests)
+		printStart(flags.Staging, flags.Tests)
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop() // Ensure cleanup
@@ -42,18 +53,18 @@ var startCmd = &cobra.Command{
 			return e
 		}
 
-		rs, e := startBuild(ctx, client, staging, tests, revision, doDataTest)
+		rs, e := startBuild(ctx, client, flags)
 		if e != nil {
 			return e
 		}
 
 		// Wait for the build to finish
-		re, e := waitForBuild(ctx, client, *rs.Build.Id, showProgress, interval)
+		re, e := waitForBuild(ctx, client, *rs.Build.Id, flags.ShowProgress, flags.Interval)
 		if e != nil {
 			return e
 		}
 
-		return printTestResult(ctx, client, re)
+		return printTestResult(ctx, client, re, false)
 	},
 	ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
 		// Avoid doing file/folder completion after the command
@@ -95,14 +106,21 @@ func printStart(staging string, tests []string) {
 
 // -----------------------------------------------------------------------------
 // Get start command flags
-func getFlags(cmd *cobra.Command) (string, []string, string, bool, bool, int, error) {
-	staging := cmd.Flag("staging").Value.String()
-	revision := cmd.Flag("revision").Value.String()
+func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
+	var flags StartCmdFlags
+	flags.Staging = cmd.Flag("staging").Value.String()
+	flags.Revision = cmd.Flag("revision").Value.String()
 	doDataTest, err := cmd.Flags().GetBool("data-tests")
 	if err != nil {
-		return "", nil, "", false, false, 0, err
+		return StartCmdFlags{}, err
 	}
+	flags.DoDataTest = doDataTest
+
 	tests, err := cmd.Flags().GetStringArray("tests")
+	if err != nil {
+		return StartCmdFlags{}, err
+	}
+
 	// Append the "tests." prefix to all tests
 	tests = func() []string {
 		out := make([]string, len(tests))
@@ -111,20 +129,22 @@ func getFlags(cmd *cobra.Command) (string, []string, string, bool, bool, int, er
 		}
 		return out
 	}()
+	flags.Tests = tests
 
-	if err != nil {
-		return "", nil, "", false, false, 0, err
-	}
 	np, err := cmd.Flags().GetBool("no-progress")
 	if err != nil {
-		return "", nil, "", false, false, 0, err
+		return StartCmdFlags{}, err
 	}
 	showProgress := !np
+	flags.ShowProgress = showProgress
+
 	interval, err := cmd.Flags().GetInt("interval")
 	if err != nil {
-		return "", nil, "", false, false, 0, err
+		return StartCmdFlags{}, err
 	}
-	return staging, tests, revision, doDataTest, showProgress, interval, nil
+	flags.Interval = interval
+
+	return flags, nil
 }
 
 //-----------------------------------------------------------------------------
@@ -132,18 +152,15 @@ func getFlags(cmd *cobra.Command) (string, []string, string, bool, bool, int, er
 func startBuild(
 	ctx context.Context,
 	client *codebuild.Client,
-	staging string,
-	tests []string,
-	revision string,
-	doDataTest bool,
+	flags StartCmdFlags,
 ) (*codebuild.StartBuildOutput, error) {
 	d := "0"
-	if doDataTest {
+	if flags.DoDataTest {
 		d = "1"
 	}
 	input := &codebuild.StartBuildInput{
-		ProjectName:   str.Ptr(projectName(staging)),
-		SourceVersion: &revision,
+		ProjectName:   str.Ptr(projectName(flags.Staging)),
+		SourceVersion: &flags.Revision,
 		EnvironmentVariablesOverride: []types.EnvironmentVariable{
 			{
 				Name:  str.Ptr("IS_PULL_REQUEST"),
@@ -157,7 +174,7 @@ func startBuild(
 			},
 			{
 				Name:  str.Ptr("TEST_NAMES"),
-				Value: str.Ptr(strings.Join(tests, ",")),
+				Value: str.Ptr(strings.Join(flags.Tests, ",")),
 				Type:  types.EnvironmentVariableTypePlaintext,
 			},
 		},
