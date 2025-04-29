@@ -141,7 +141,12 @@ func waitForBuild(
 
 //-----------------------------------------------------------------------------
 
-func printTestResult(ctx context.Context, client *codebuild.Client, result *codebuild.BatchGetBuildsOutput) error {
+func printTestResult(
+	ctx context.Context,
+	client *codebuild.Client,
+	result *codebuild.BatchGetBuildsOutput,
+	detailed bool,
+) error {
 	if result.Builds[0].BuildStatus == types.StatusTypeSucceeded {
 		cPrintln(fmtc.Green, "E2E tests succeeded")
 		return nil
@@ -149,7 +154,7 @@ func printTestResult(ctx context.Context, client *codebuild.Client, result *code
 	// If the build failed, print the reports
 	cPrintln(fmtc.Red, "E2E tests failed !")
 	for _, report := range result.Builds[0].ReportArns {
-		e := printTestReport(ctx, client, report, *result.Builds[0].Id)
+		e := printTestReport(ctx, client, report, *result.Builds[0].Id, detailed)
 		if e != nil {
 			return e
 		}
@@ -160,22 +165,38 @@ func printTestResult(ctx context.Context, client *codebuild.Client, result *code
 
 //-----------------------------------------------------------------------------
 
-func printTestReport(ctx context.Context, client *codebuild.Client, reportArn string, buildID string) error {
-	var e error
+func printTestReport(
+	ctx context.Context,
+	client *codebuild.Client,
+	reportArn string,
+	buildID string,
+	detailed bool,
+) error {
+	// Get the number of tests
+	input := &codebuild.BatchGetReportsInput{
+		ReportArns: []string{reportArn},
+	}
+	r, e := client.BatchGetReports(ctx, input)
+	if e != nil {
+		return fmt.Errorf("failed to describe test case for reportARN=%s: %w", reportArn, e)
+	}
+	nbTests := int(*r.Reports[0].TestSummary.Total)
 
 	// First get the errors
-	e = printTestReportByStatus(ctx, client, reportArn, "ERROR")
+	nbErr, e := printTestReportByStatus(ctx, client, reportArn, "ERROR", detailed)
 	if e != nil {
 		return e
 	}
 
 	// Then gets the failure
-	e = printTestReportByStatus(ctx, client, reportArn, "FAILED")
+	nbFails, e := printTestReportByStatus(ctx, client, reportArn, "FAILED", detailed)
 	if e != nil {
 		return e
 	}
 
-	cPrintln(fmtc.Red, "\nTest report link:")
+	cPrintf(fmtc.Red, "\nTests failures/errors %d%% (%d/%d)\n", (nbErr+nbFails)*100/nbTests, nbErr+nbFails, nbTests)
+
+	cPrintln(fmtc.Red, "Test report link:")
 	cPrintln(fmtc.Red, "-----------------")
 	cPrintln(fmtc.Red, buildReportLink(projectNameFromBuildID(buildID), reportArn))
 
@@ -184,7 +205,13 @@ func printTestReport(ctx context.Context, client *codebuild.Client, reportArn st
 
 //-----------------------------------------------------------------------------
 
-func printTestReportByStatus(ctx context.Context, client *codebuild.Client, reportArn string, status string) error {
+func printTestReportByStatus(
+	ctx context.Context,
+	client *codebuild.Client,
+	reportArn string,
+	status string,
+	detailed bool,
+) (int, error) {
 	filter := &types.TestCaseFilter{
 		Status: &status,
 	}
@@ -194,23 +221,25 @@ func printTestReportByStatus(ctx context.Context, client *codebuild.Client, repo
 	}
 	r, e := client.DescribeTestCases(ctx, input)
 	if e != nil {
-		return fmt.Errorf("failed to describe test case %s for reportARN=%s: %w", status, reportArn, e)
+		return 0, fmt.Errorf("failed to describe test case %s for reportARN=%s: %w", status, reportArn, e)
 	}
-	printTestCases(r.TestCases, status)
+	printTestCases(r.TestCases, status, detailed)
 
-	return nil
+	return len(r.TestCases), nil
 }
 
 //-----------------------------------------------------------------------------
 
-func printTestCases(tests []types.TestCase, statusType string) {
+func printTestCases(tests []types.TestCase, statusType string, detailed bool) {
 	if len(tests) > 0 {
-		cPrintf(fmtc.Red, "Tests with %s:\n", statusType)
-		cPrintf(fmtc.Red, "-----------%s-\n", strings.Repeat("-", len(statusType)))
+		cPrintf(fmtc.Red, "\n%-3d tests %s:\n", len(tests), statusType)
+		cPrintf(fmtc.Red, "----------%s-\n", strings.Repeat("-", len(statusType)))
 		for _, t := range tests {
 			const nanoSeconds int64 = 1_000_000_000
-			cPrintf(fmtc.Red, "- %s.%s (%d s)", *t.Prefix, *t.Name, *t.DurationInNanoSeconds/nanoSeconds)
-			cPrintf(fmtc.Red, "    %s\n", strings.ReplaceAll(*t.Message, "\n", "\n    "))
+			cPrintf(fmtc.Red, "- %s.%s (%d s)\n", *t.Prefix, *t.Name, *t.DurationInNanoSeconds/nanoSeconds)
+			if detailed {
+				cPrintf(fmtc.Red, "    %s\n\n", strings.ReplaceAll(*t.Message, "\n", "\n    "))
+			}
 		}
 	}
 }
