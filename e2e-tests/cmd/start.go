@@ -154,13 +154,18 @@ func startBuild(
 	client *codebuild.Client,
 	flags StartCmdFlags,
 ) (*codebuild.StartBuildOutput, error) {
+	const tm30Minutes = 30
+	const tm60Minutes = 60
+	timeout := int32(tm30Minutes)
 	d := "0"
 	if flags.DoDataTest {
 		d = "1"
+		timeout = int32(tm60Minutes)
 	}
 	input := &codebuild.StartBuildInput{
-		ProjectName:   str.Ptr(projectName(flags.Staging)),
-		SourceVersion: &flags.Revision,
+		ProjectName:              str.Ptr(projectName(flags.Staging)),
+		SourceVersion:            &flags.Revision,
+		TimeoutInMinutesOverride: &timeout,
 		EnvironmentVariablesOverride: []types.EnvironmentVariable{
 			{
 				Name:  str.Ptr("IS_PULL_REQUEST"),
