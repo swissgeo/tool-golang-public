@@ -20,9 +20,10 @@ func newGetCmd() *cobra.Command {
 	options := getCmdOptions{}
 
 	getCmd := &cobra.Command{
-		Use:   "get --profile PROFILE --name NAME [-o|--value-only]",
-		Short: "Get the SSM parameter NAME from the account PROFILE",
-		Long:  `Get the SSM parameter NAME from the account PROFILE`,
+		Use:               "get --profile PROFILE --name NAME [-o|--value-only]",
+		Short:             "Get single the SSM parameter",
+		Long:              `Get the SSM parameter NAME from the account PROFILE`,
+		CompletionOptions: cobra.CompletionOptions{},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var err error
 			options.verbose, err = cmd.Flags().GetBool("verbose")
@@ -38,6 +39,8 @@ func newGetCmd() *cobra.Command {
 	getCmd.Flags().BoolVarP(&options.valueOnly, "value-only", "o", false, "If you only want to see the value")
 	_ = getCmd.MarkFlagRequired("profile")
 	_ = getCmd.MarkFlagRequired("name")
+	_ = getCmd.RegisterFlagCompletionFunc("profile", profileCompletion)
+	_ = getCmd.RegisterFlagCompletionFunc("name", nameCompletionCached())
 	return getCmd
 }
 

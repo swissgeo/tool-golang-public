@@ -26,8 +26,8 @@ func newListCmd() *cobra.Command {
 
 	listCmd := &cobra.Command{
 		Use:   "list [--profile PROFILE] [-s|--search <search-string>] [-d|--with-decryption]",
-		Short: "List all the SSM parameters.",
-		Long:  `List all the SSM parameters.`,
+		Short: "List available SSM parameters",
+		Long:  `List SSM parameters from all AWS accounts.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var err error
 			options.verbose, err = cmd.Flags().GetBool("verbose")
@@ -42,6 +42,7 @@ func newListCmd() *cobra.Command {
 	listCmd.Flags().BoolVarP(&options.withDecryption, "with-decryption", "d", false, "Dump the credential values")
 	listCmd.Flags().BoolVarP(&options.shared, "shared", "a", false, "Show the shared parameters")
 	listCmd.Flags().StringVarP(&options.search, "search", "s", "", "Search for SEARCH in the parameter names")
+	_ = listCmd.RegisterFlagCompletionFunc("profile", profileCompletion)
 	return listCmd
 }
 
