@@ -46,6 +46,32 @@ func initPrint(cmd *cobra.Command) error {
 
 //-----------------------------------------------------------------------------
 
+func getOptionsWithRole(ctx context.Context, region string, role string) (func(*config.LoadOptions) error, error) {
+	cfg, e := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	if e != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", e)
+	}
+	splittedRole := strings.Split(role, "/")
+	roleName := splittedRole[len(splittedRole)-1]
+	stsClient := sts.NewFromConfig(cfg)
+	cred, e := stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
+		RoleArn:         &role,
+		RoleSessionName: str.Ptr(fmt.Sprintf("ToolE2ETestsAssumeRole%s", roleName)),
+		DurationSeconds: aws.Int32(45 * 60), //nolint:mnd
+	})
+	if e != nil {
+		return nil, fmt.Errorf("failed to assume role %s: %w", role, e)
+	}
+	cfgOpt := config.WithCredentialsProvider(
+		credentials.NewStaticCredentialsProvider(
+			*cred.Credentials.AccessKeyId,
+			*cred.Credentials.SecretAccessKey,
+			*cred.Credentials.SessionToken,
+		),
+	)
+	return cfgOpt, nil
+}
+
 // Returns a CodeBuild client
 func getClient(ctx context.Context, cmd *cobra.Command) (*codebuild.Client, error) {
 	noProfile, e := cmd.Flags().GetBool("no-profile")
@@ -53,49 +79,28 @@ func getClient(ctx context.Context, cmd *cobra.Command) (*codebuild.Client, erro
 		return nil, e
 	}
 	role := cmd.Flag("role").Value.String()
-	var cfg aws.Config
+	var cfgOpt func(*config.LoadOptions) error
 
 	switch {
 	case role != "":
-		var cred *sts.AssumeRoleOutput
-		cfg, e = config.LoadDefaultConfig(ctx, config.WithRegion("eu-central-1"))
+		cfgOpt, e = getOptionsWithRole(ctx, "eu-central-1", role)
 		if e != nil {
-			return nil, fmt.Errorf("failed to load configuration: %w", e)
-		}
-		splittedRole := strings.Split(role, "/")
-		roleName := splittedRole[len(splittedRole)-1]
-		stsClient := sts.NewFromConfig(cfg)
-		cred, e = stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
-			RoleArn:         &role,
-			RoleSessionName: str.Ptr(fmt.Sprintf("ToolE2ETestsAssumeRole%s", roleName)),
-			DurationSeconds: aws.Int32(45 * 60), //nolint:mnd
-		})
-		if e != nil {
-			return nil, fmt.Errorf("failed to assume role %s: %w", role, e)
-		}
-
-		cfg, e = config.LoadDefaultConfig(ctx, config.WithCredentialsProvider(
-			credentials.NewStaticCredentialsProvider(
-				*cred.Credentials.AccessKeyId,
-				*cred.Credentials.SecretAccessKey,
-				*cred.Credentials.SessionToken,
-			),
-		))
-		if e != nil {
-			return nil, fmt.Errorf("failed to load configuration with role credentials: %w", e)
+			return nil, fmt.Errorf("failed to get options with role: %s: %w", role, e)
 		}
 	case noProfile:
-		cfg, e = config.LoadDefaultConfig(ctx, config.WithRegion("eu-central-1"))
-		if e != nil {
-			return nil, fmt.Errorf("failed to load configuration: %w", e)
-		}
+		cfgOpt = config.WithRegion("eu-central-1")
 	default:
-		cfg, e = config.LoadDefaultConfig(ctx, config.WithSharedConfigProfile("swisstopo-bgdi-builder"))
-		if e != nil {
-			return nil, fmt.Errorf("failed to load configuration: %w", e)
-		}
+		cfgOpt = config.WithSharedConfigProfile("swisstopo-bgdi-builder")
 	}
 
+	maxAttempts, e := cmd.Flags().GetInt("max-attempts")
+	if e != nil {
+		return nil, e
+	}
+	cfg, e := config.LoadDefaultConfig(ctx, cfgOpt, config.WithRetryMaxAttempts(maxAttempts))
+	if e != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", e)
+	}
 	client := codebuild.NewFromConfig(cfg)
 
 	return client, nil
