@@ -77,7 +77,7 @@ dockerlogin:
 .PHONY: dockerbuild-e2e-tests
 dockerbuild-e2e-tests:
 	docker build \
-		--build-arg GOLANG_VERSION="$(GOLANG_VERSION)" \
+		--build-arg BASE_IMAGE_VERSION="$(GOLANG_VERSION)" \
 		--build-arg GIT_HASH="$(GIT_HASH)" \
 		--build-arg GIT_BRANCH="$(GIT_BRANCH)" \
 		--build-arg GIT_DIRTY="$(GIT_DIRTY)" \
