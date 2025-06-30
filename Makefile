@@ -5,6 +5,7 @@ SHELL = /bin/bash
 CURRENT_DIR := $(shell pwd)
 
 # Docker metadata
+GOLANG_VERSION ?= `cat .go-version`
 GIT_HASH = `git rev-parse HEAD`
 GIT_HASH_SHORT = `git rev-parse --short HEAD`
 GIT_BRANCH = `git symbolic-ref HEAD --short 2>/dev/null`
@@ -76,6 +77,7 @@ dockerlogin:
 .PHONY: dockerbuild-e2e-tests
 dockerbuild-e2e-tests:
 	docker build \
+		--build-arg BASE_IMAGE_VERSION="$(GOLANG_VERSION)" \
 		--build-arg GIT_HASH="$(GIT_HASH)" \
 		--build-arg GIT_BRANCH="$(GIT_BRANCH)" \
 		--build-arg GIT_DIRTY="$(GIT_DIRTY)" \
