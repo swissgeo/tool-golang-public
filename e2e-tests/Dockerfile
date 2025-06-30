@@ -1,5 +1,5 @@
 # Generic docker file for all tools that needs to be build
-ARG BASE_IMAGE_VERSION=latest
+ARG BASE_IMAGE_VERSION=YOU_FORGOT_TO_SET_A_VERSION
 # Use an official Golang image as the base
 FROM golang:${BASE_IMAGE_VERSION} AS builder
 
