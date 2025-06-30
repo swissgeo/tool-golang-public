@@ -5,7 +5,7 @@ SHELL = /bin/bash
 CURRENT_DIR := $(shell pwd)
 
 # Docker metadata
-GOLANG_VERSION ?= `cat .go-version`
+GOLANG_VERSION ?= `GOENV_GOMOD_VERSION_ENABLE=1 goenv local`
 GIT_HASH = `git rev-parse HEAD`
 GIT_HASH_SHORT = `git rev-parse --short HEAD`
 GIT_BRANCH = `git symbolic-ref HEAD --short 2>/dev/null`
