@@ -61,6 +61,8 @@ func init() {
 	rootCmd.PersistentFlags().String("role", "", "Role to assume for AWS permissions")
 	rootCmd.PersistentFlags().Bool("no-progress", false, "For long running command don't display progress indicator")
 	rootCmd.PersistentFlags().Int("interval", 1, "Interval in seconds to check the E2E tests status")
+	rootCmd.PersistentFlags().Int("max-attempts", 3, //nolint:mnd
+		"Maximum attempts when performing calls to CodeBuild that return a retryable error.")
 }
 
 //-----------------------------------------------------------------------------
