@@ -185,6 +185,12 @@ func printTestReport(
 	if e != nil {
 		return fmt.Errorf("failed to describe test case for reportARN=%s: %w", reportArn, e)
 	}
+	if len(r.Reports) != 1 {
+		return fmt.Errorf("Unexpected number of reports for reportARN=%s: %d", reportArn, len(r.Reports))
+	}
+	if r.Reports[0].TestSummary == nil {
+		return fmt.Errorf("Test summary unexpectedly nil for reportARN=%s: %v", reportArn, r.Reports[0])
+	}
 	nbTests := int(*r.Reports[0].TestSummary.Total)
 
 	// First get the errors
