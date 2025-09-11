@@ -37,10 +37,15 @@ func newGetCmd() *cobra.Command {
 	getCmd.Flags().StringVarP(&options.profile, "profile", "p", "", "MANDATORY: Profile/Account name")
 	getCmd.Flags().StringVarP(&options.name, "name", "n", "", "MANDATORY: Name of the ssm parameter")
 	getCmd.Flags().BoolVarP(&options.valueOnly, "value-only", "o", false, "If you only want to see the value")
+
+	nameCompletionCache, err := nameCompletionCached()
+	if err != nil {
+		panic(err)
+	}
 	_ = getCmd.MarkFlagRequired("profile")
 	_ = getCmd.MarkFlagRequired("name")
 	_ = getCmd.RegisterFlagCompletionFunc("profile", profileCompletion)
-	_ = getCmd.RegisterFlagCompletionFunc("name", nameCompletionCached())
+	_ = getCmd.RegisterFlagCompletionFunc("name", nameCompletionCache)
 	return getCmd
 }
 

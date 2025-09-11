@@ -1,8 +1,6 @@
 package completioncache_test
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,6 +15,11 @@ func TestCache(t *testing.T) {
 
 	cache, err := completioncache.NewCache(cmdName, time.Hour)
 	require.NoError(t, err)
+	defer func() {
+		// clean up cache directory
+		err = cache.Delete()
+		require.NoError(t, err)
+	}()
 
 	// Test missing key is not found
 	completions, dir, err := cache.Read("subCmd-missing")
@@ -39,12 +42,22 @@ func TestCache(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []cobra.Completion{"val-a", "val-b"}, completions)
 	assert.Equal(t, cobra.ShellCompDirectiveDefault, dir)
+}
 
-	// clean up cache directory
-	home, err := os.UserHomeDir()
+func TestCacheDelete(t *testing.T) {
+	cmdName := "test-completion-cache"
+
+	cache, err := completioncache.NewCache(cmdName, time.Hour)
 	require.NoError(t, err)
-	filePath, err := filepath.Abs(home + "/" + cmdName + "/")
+	err = cache.Delete()
 	require.NoError(t, err)
-	err = os.RemoveAll(filePath)
-	require.NoError(t, err)
+
+	// Test missing key is not found
+	completions, dir, err := cache.Read("subCmd-missing")
+	assert.Nil(t, completions)
+	assert.Equal(t, cobra.ShellCompDirectiveError, dir)
+	assert.ErrorIs(t, err, completioncache.ErrCacheDeleted)
+
+	err = cache.Write("subCmd-FlagA", []cobra.Completion{"val-a", "val-b"}, cobra.ShellCompDirectiveDefault)
+	assert.ErrorIs(t, err, completioncache.ErrCacheDeleted)
 }

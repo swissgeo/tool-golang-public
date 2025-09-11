@@ -19,8 +19,11 @@ func profileCompletion(_ *cobra.Command, _ []string, _ string) ([]cobra.Completi
 	return profiles, cobra.ShellCompDirectiveDefault
 }
 
-func nameCompletionCached() cobra.CompletionFunc {
-	cache, _ := completioncache.NewCache("aws-ssm", time.Hour*24) //nolint:mnd
+func nameCompletionCached() (cobra.CompletionFunc, error) {
+	cache, err := completioncache.NewCache("aws-ssm", time.Hour*24) //nolint:mnd
+	if err != nil {
+		return nil, err
+	}
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
 		profile, _ := cmd.Flags().GetString("profile")
 		c, d, err := cache.Read(fmt.Sprintf("get-name-%s", profile))
@@ -32,7 +35,7 @@ func nameCompletionCached() cobra.CompletionFunc {
 			_ = cache.Write(fmt.Sprintf("get-name-%s", profile), c, d)
 		}
 		return c, d
-	}
+	}, nil
 }
 
 func nameCompletion(cmd *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective, bool) {
