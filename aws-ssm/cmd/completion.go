@@ -12,7 +12,7 @@ import (
 )
 
 func profileCompletion(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
-	profiles, err := local_aws.GetLocalBgdiAdminProfiles()
+	profiles, err := local_aws.GetLocalAdminProfiles()
 	if err != nil {
 		return []cobra.Completion{}, cobra.ShellCompDirectiveError
 	}

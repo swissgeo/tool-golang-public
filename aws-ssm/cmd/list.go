@@ -48,7 +48,7 @@ func newListCmd() *cobra.Command {
 
 func listSSMParameter(opts listCmdOptions) error {
 	// Get profiles:
-	profiles, err := local_aws.GetLocalBgdiAdminProfiles()
+	profiles, err := local_aws.GetLocalAdminProfiles()
 	if err != nil {
 		return err
 	}

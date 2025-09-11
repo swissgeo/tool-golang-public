@@ -9,8 +9,8 @@ import (
 )
 
 // Only minimal test
-func TestGetLocalAwsProfiles(t *testing.T) {
-	got, err := aws.GetLocalBgdiAdminProfiles()
+func TestGetLocalAdminProfiles(t *testing.T) {
+	got, err := aws.GetLocalAdminProfiles()
 	require.NoError(t, err)
 	assert.NotEmpty(t, got)
 }

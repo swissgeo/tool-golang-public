@@ -34,3 +34,23 @@ func GetLocalProfiles(ssoRole string) ([]string, error) {
 func GetLocalBgdiAdminProfiles() ([]string, error) {
 	return GetLocalProfiles("BgdiAdmin")
 }
+
+// GetLocalSwissgeoAdminProfiles returns profiles related to sso role SwissgeoAdmin.
+// For most use cases (like SSM Parameters) this is fine.
+func GetLocalSwissgeoAdminProfiles() ([]string, error) {
+	return GetLocalProfiles("SwissgeoAdmin")
+}
+
+// GetLocalAdminProfiles returns profiles related to sso role SwissgeoAdmin and BgdiAdmin.
+// For most use cases (like SSM Parameters) this is fine.
+func GetLocalAdminProfiles() ([]string, error) {
+	bgdiProfiles, err := GetLocalProfiles("BgdiAdmin")
+	if err != nil {
+		return nil, err
+	}
+	swissgeoProfiles, err := GetLocalProfiles("SwissgeoAdmin")
+	if err != nil {
+		return nil, err
+	}
+	return append(bgdiProfiles, swissgeoProfiles...), nil
+}
