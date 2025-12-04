@@ -21,9 +21,6 @@ E2E_TESTS_DOCKER_IMG_LOCAL_TAG := $(DOCKER_REGISTRY)/tool-golang-bgdi/e2e-tests:
 AWS_DEFAULT_REGION = eu-central-1
 
 
-all: help
-
-
 .PHONY: help
 help:
 	@echo "Usage: make <target>"
@@ -66,6 +63,10 @@ format-lint: format lint
 .PHONY: test
 test:
 	go test ./... -v -count=1 # count=1 disables test caching
+
+.PHONY: all
+all:
+	go build ./...
 
 # Docker related functions.
 
