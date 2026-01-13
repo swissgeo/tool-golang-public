@@ -7,13 +7,15 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/codebuild"
-	"github.com/aws/aws-sdk-go-v2/service/codebuild/types"
+	codebuild_types "github.com/aws/aws-sdk-go-v2/service/codebuild/types"
 	"github.com/geoadmin/tool-golang-bgdi/e2e-tests/cmd/completions"
 	"github.com/geoadmin/tool-golang-bgdi/lib/fmtc"
 	"github.com/geoadmin/tool-golang-bgdi/lib/str"
 	"github.com/spf13/cobra"
+
+	"github.com/geoadmin/tool-golang-bgdi/lib/aws/codebuild"
 )
 
 //-----------------------------------------------------------------------------
@@ -48,23 +50,60 @@ var startCmd = &cobra.Command{
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop() // Ensure cleanup
 
-		client, e := getClient(ctx, cmd)
+		startOpt := codebuild.StartOptions{
+			SourceVersion: flags.Revision,
+			Timeout:       30 * time.Minute, //nolint:mnd
+			Environment: []codebuild_types.EnvironmentVariable{
+				{
+					Name:  str.Ptr("IS_PULL_REQUEST"),
+					Value: str.Ptr("0"),
+					Type:  codebuild_types.EnvironmentVariableTypePlaintext,
+				},
+				{
+					Name:  str.Ptr("DO_DATA_TEST"),
+					Value: str.Ptr("1"),
+					Type:  codebuild_types.EnvironmentVariableTypePlaintext,
+				},
+				{
+					Name:  str.Ptr("TEST_NAMES"),
+					Value: str.Ptr(strings.Join(flags.Tests, ",")),
+					Type:  codebuild_types.EnvironmentVariableTypePlaintext,
+				},
+			},
+		}
+		if flags.DoDataTest {
+			startOpt.Timeout = 60 * time.Minute //nolint:mnd
+		}
+		client, e := codebuild.NewClient(ctx, *cmd.Flags())
 		if e != nil {
 			return e
 		}
 
-		rs, e := startBuild(ctx, client, flags)
+		build, e := client.StartBuildWithOptions(ctx, projectName(flags.Staging), startOpt)
 		if e != nil {
 			return e
 		}
+		fmt.Printf("E2E tests started with ID: %v\n%s\n", build.ID, fmtc.Colorise(fmtc.Yellow, build.Arn.Link()))
 
+		getOpt := codebuild.GetOptions{
+			WaitForCompletion: true,
+			WaitSleepInterval: time.Duration(flags.Interval) * time.Second,
+			ProgressOutput:    os.Stdout,
+		}
+		if !flags.ShowProgress {
+			getOpt.ProgressOutput = nil
+		}
 		// Wait for the build to finish
-		re, e := waitForBuild(ctx, client, *rs.Build.Id, flags.ShowProgress, flags.Interval)
+		re, e := client.GetBuildWithOptions(ctx, build.ID, getOpt)
 		if e != nil {
 			return e
 		}
 
-		return printTestResult(ctx, client, re, false)
+		printTestResult(re, false)
+		if !re.Succeeded() {
+			return ErrTestFailed
+		}
+		return nil
 	},
 	ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
 		// Avoid doing file/folder completion after the command
@@ -96,11 +135,11 @@ func init() {
 //-----------------------------------------------------------------------------
 
 func printStart(staging string, tests []string) {
-	cPrintf(fmtc.NoColor, "Starting E2E tests on %s staging", staging)
+	fmt.Printf("Starting E2E tests on %s staging", staging)
 	if len(tests) > 0 {
-		cPrintf(fmtc.NoColor, " with tests: %s\n", strings.Join(tests, ", "))
+		fmt.Printf(" with tests: %s\n", strings.Join(tests, ", "))
 	} else {
-		cPrintf(fmtc.NoColor, " with all tests\n")
+		fmt.Printf(" with all tests\n")
 	}
 }
 
@@ -145,51 +184,4 @@ func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
 	flags.Interval = interval
 
 	return flags, nil
-}
-
-//-----------------------------------------------------------------------------
-
-func startBuild(
-	ctx context.Context,
-	client *codebuild.Client,
-	flags StartCmdFlags,
-) (*codebuild.StartBuildOutput, error) {
-	const tm30Minutes = 30
-	const tm60Minutes = 60
-	timeout := int32(tm30Minutes)
-	d := "0"
-	if flags.DoDataTest {
-		d = "1"
-		timeout = int32(tm60Minutes)
-	}
-	input := &codebuild.StartBuildInput{
-		ProjectName:              str.Ptr(projectName(flags.Staging)),
-		SourceVersion:            &flags.Revision,
-		TimeoutInMinutesOverride: &timeout,
-		EnvironmentVariablesOverride: []types.EnvironmentVariable{
-			{
-				Name:  str.Ptr("IS_PULL_REQUEST"),
-				Value: str.Ptr("0"),
-				Type:  types.EnvironmentVariableTypePlaintext,
-			},
-			{
-				Name:  str.Ptr("DO_DATA_TEST"),
-				Value: &d,
-				Type:  types.EnvironmentVariableTypePlaintext,
-			},
-			{
-				Name:  str.Ptr("TEST_NAMES"),
-				Value: str.Ptr(strings.Join(flags.Tests, ",")),
-				Type:  types.EnvironmentVariableTypePlaintext,
-			},
-		},
-	}
-
-	result, err := client.StartBuild(ctx, input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to start build: %w", err)
-	}
-	cPrintf(fmtc.NoColor, "E2E tests started with ID: %s\n", *result.Build.Id)
-	cPrintln(fmtc.Yellow, buildLogLink(*result.Build.Id))
-	return result, nil
 }

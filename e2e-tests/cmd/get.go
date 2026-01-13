@@ -9,10 +9,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/codebuild"
-	"github.com/geoadmin/tool-golang-bgdi/lib/fmtc"
 	"github.com/spf13/cobra"
+
+	"github.com/geoadmin/tool-golang-bgdi/lib/aws/codebuild"
 )
 
 //-----------------------------------------------------------------------------
@@ -47,33 +48,33 @@ Note that if the tests run is on-going, the command waits until its is finished.
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop() // Ensure cleanup
 
-		client, e := getClient(ctx, cmd)
+		client, e := codebuild.NewClient(ctx, *cmd.Flags())
 		if e != nil {
 			return e
 		}
-
-		input := &codebuild.BatchGetBuildsInput{
-			Ids: []string{flags.TestID},
+		getOpt := codebuild.GetOptions{
+			WaitForCompletion: true,
+			WaitSleepInterval: time.Duration(flags.Interval) * time.Second,
+			ProgressOutput:    os.Stdout,
+			FetchReport:       true,
+			TestCases:         []codebuild.TestStatus{codebuild.TestStatusFailed, codebuild.TestStatusError},
 		}
-		r, e := client.BatchGetBuilds(ctx, input)
+		if !flags.ShowProgress {
+			getOpt.ProgressOutput = nil
+		}
+		build, e := codebuild.ParseBuildID(flags.TestID)
+		if e != nil {
+			return fmt.Errorf("invalid test ID: %w", e)
+		}
+		r, e := client.GetBuildWithOptions(ctx, build, getOpt)
 		if e != nil {
 			return fmt.Errorf("failed to get tests run %s: %w", flags.TestID, e)
 		}
-
-		if len(r.Builds) == 0 {
-			return fmt.Errorf("failed to get tests run %s: not found", flags.TestID)
+		printTestResult(r, flags.Detailed)
+		if !r.Succeeded() {
+			return ErrTestFailed
 		}
-		if !r.Builds[0].BuildComplete {
-			cPrintln(fmtc.NoColor, "E2E Tests run found, run in progress waiting to complete...")
-			r, e = waitForBuild(ctx, client, flags.TestID, flags.ShowProgress, flags.Interval)
-			if e != nil {
-				return e
-			}
-		} else {
-			cPrintf(fmtc.NoColor, "E2E Tests run found and completed at %s\n", r.Builds[0].EndTime.UTC().String())
-		}
-
-		return printTestResult(ctx, client, r, flags.Detailed)
+		return nil
 	},
 	ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
 		// Avoid doing file/folder completion after the command
