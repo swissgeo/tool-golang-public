@@ -152,7 +152,7 @@ func (r Report) String(detailed bool) string {
 	if r.TestsCount != 0 {
 		faultyPct = fmt.Sprintf("%d%%", faults*100/r.TestsCount)
 	}
-	s += fmt.Sprintf("Tests failures/errors %s (%d/%d)\n", faultyPct, faults, r.TestsCount)
+	s += fmt.Sprintf("\nTests failures/errors %s (%d/%d)\n", faultyPct, faults, r.TestsCount)
 	s += fmt.Sprintf("%s\n", r.Link())
 	return s
 }
