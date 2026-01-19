@@ -129,34 +129,3 @@ func ParseBuild(s string) (Build, error) {
 func ParseBuildReport(s string) (BuildReport, error) {
 	return ParseType(s, "codebuild", "report", "")
 }
-
-func (a ARN) Link() string {
-	switch a.ResourceType() {
-	case "build":
-		return linkForBuild(a)
-	case "report":
-		return linkForBuildReport(a)
-	default:
-		return ""
-	}
-}
-
-func linkForBuildReport(a BuildReport) string {
-	return fmt.Sprintf("https://%s.console.aws.amazon.com/codesuite/codebuild/%s/testReports/reports/%s/%s?region=%s",
-		a.Region(),
-		a.AccountID(),
-		a.ResourceSubType(),
-		a.ResourceID(),
-		a.Region(),
-	)
-}
-
-func linkForBuild(a Build) string {
-	return fmt.Sprintf("https://%s.console.aws.amazon.com/codesuite/codebuild/%s/projects/%s/build/%s?region=%s",
-		a.Region(),
-		a.AccountID(),
-		a.ResourceSubType(),
-		a.ResourceID(),
-		a.Region(),
-	)
-}

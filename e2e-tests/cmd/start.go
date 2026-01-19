@@ -83,7 +83,7 @@ var startCmd = &cobra.Command{
 		if e != nil {
 			return e
 		}
-		fmt.Printf("E2E tests started with ID: %v\n%s\n", build.ID, fmtc.Colorise(fmtc.Yellow, build.Arn.Link()))
+		fmt.Printf("E2E tests started with ID: %v\n%s\n", build.ID, fmtc.Colorise(fmtc.Yellow, build.Link()))
 
 		getOpt := codebuild.GetOptions{
 			WaitForCompletion: true,

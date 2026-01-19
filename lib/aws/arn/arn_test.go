@@ -128,16 +128,6 @@ func TestParseBuild(t *testing.T) {
 	require.ErrorIs(t, e, arn.ErrWrongResourceType)
 }
 
-func TestBuildLink(t *testing.T) {
-	b, e := arn.ParseBuild("arn:aws:codebuild:venus-west-13:007:build/secret-project:dead-decaf")
-	require.NoError(t, e)
-	require.Equal(t,
-		"https://venus-west-13.console.aws.amazon.com/"+
-			"codesuite/codebuild/007/projects/secret-project/"+
-			"build/secret-project:dead-decaf?region=venus-west-13",
-		b.Link())
-}
-
 func TestParseBuildReport(t *testing.T) {
 	var a arn.BuildReport
 	a, e := arn.ParseBuildReport(
@@ -147,16 +137,4 @@ func TestParseBuildReport(t *testing.T) {
 	require.Equal(t, "report/some-project-reports/some-project-reports:1234", a.Resource())
 	require.Equal(t, "some-project-reports/some-project-reports:1234", a.ResourceID())
 	require.Equal(t, "report", a.ResourceType())
-}
-
-func TestBuildReportLink(t *testing.T) {
-	var r arn.BuildReport
-	r, e := arn.ParseBuildReport("arn:aws:codebuild:jupiter-north-2:42:report/some-project-reports:1234")
-	require.NoError(t, e)
-	require.Equal(t,
-		"https://jupiter-north-2.console.aws.amazon.com/"+
-			"codesuite/codebuild/42/testReports/reports/"+
-			"some-project-reports/some-project-reports:1234"+
-			"?region=jupiter-north-2",
-		r.Link())
 }

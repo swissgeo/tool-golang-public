@@ -102,7 +102,7 @@ func (b Build) Succeeded() bool {
 }
 
 func (b Build) String(colorise bool, detailed bool) string {
-	s := fmt.Sprintf("Build %s\n%s\n%s\n", b.Arn.String(), b.ShortString(colorise), b.Arn.Link())
+	s := fmt.Sprintf("Build %s\n%s\n%s\n", b.Arn.String(), b.ShortString(colorise), b.Link())
 	if !reflect.ValueOf(b.report).IsZero() {
 		color := fmtc.NoColor
 		if colorise {
@@ -153,7 +153,7 @@ func (r Report) String(detailed bool) string {
 		faultyPct = fmt.Sprintf("%d%%", faults*100/r.TestsCount)
 	}
 	s += fmt.Sprintf("Tests failures/errors %s (%d/%d)\n", faultyPct, faults, r.TestsCount)
-	s += fmt.Sprintf("%s\n", r.Arn.Link())
+	s += fmt.Sprintf("%s\n", r.Link())
 	return s
 }
 

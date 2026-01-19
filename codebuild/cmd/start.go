@@ -51,7 +51,7 @@ var startCmd = &cobra.Command{
 			return e
 		}
 		log.Debug("Started build: %+v", build.Arn)
-		fmt.Println(build.Arn.Link())
+		fmt.Println(build.Link())
 
 		if getOpts.WaitForCompletion {
 			build, e = client.GetBuildWithOptions(ctx, build.ID, getOpts)
