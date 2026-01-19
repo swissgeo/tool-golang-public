@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -102,8 +101,8 @@ func (b Build) Succeeded() bool {
 }
 
 func (b Build) String(colorise bool, detailed bool) string {
-	s := fmt.Sprintf("Build %s\n%s\n%s\n", b.Arn.String(), b.ShortString(colorise), b.Link())
-	if !reflect.ValueOf(b.report).IsZero() {
+	s := fmt.Sprintf("Build %s\n%s\n%s\n", b.Arn.String(), b.Link(), b.ShortString(colorise))
+	if b.report.FaultsCount() > 0 {
 		color := fmtc.NoColor
 		if colorise {
 			color = fmtc.Red
@@ -147,14 +146,17 @@ func (r Report) String(detailed bool) string {
 			s += testCaseToString(t, detailed)
 		}
 	}
-	faults := len(r.TestCases[TestStatusError]) + len(r.TestCases[TestStatusFailed])
 	faultyPct := "NaN%"
 	if r.TestsCount != 0 {
-		faultyPct = fmt.Sprintf("%d%%", faults*100/r.TestsCount)
+		faultyPct = fmt.Sprintf("%d%%", r.FaultsCount()*100/r.TestsCount)
 	}
-	s += fmt.Sprintf("\nTests failures/errors %s (%d/%d)\n", faultyPct, faults, r.TestsCount)
+	s += fmt.Sprintf("\nTests failures/errors %s (%d/%d)\n", faultyPct, r.FaultsCount(), r.TestsCount)
 	s += fmt.Sprintf("%s\n", r.Link())
 	return s
+}
+
+func (r Report) FaultsCount() int {
+	return len(r.TestCases[TestStatusError]) + len(r.TestCases[TestStatusFailed])
 }
 
 func newReport(r codebuild_types.Report) (Report, error) {
