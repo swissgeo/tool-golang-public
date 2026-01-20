@@ -49,7 +49,7 @@ func parseFlags(flags pflag.FlagSet) (awsConfigFlags, error) {
 
 	region, err := flags.GetString("region")
 	if err != nil {
-		return configFlags, fmt.Errorf(`unable to determine "region" flag value,`+
+		return awsConfigFlags{}, fmt.Errorf(`unable to determine "region" flag value,`+
 			` did you forget to call DefineFlags? %w`,
 			err)
 	}
@@ -57,20 +57,20 @@ func parseFlags(flags pflag.FlagSet) (awsConfigFlags, error) {
 
 	profile, err := flags.GetString("profile")
 	if err != nil {
-		return configFlags, fmt.Errorf(`unable to determine "profile" flag value,`+
+		return awsConfigFlags{}, fmt.Errorf(`unable to determine "profile" flag value,`+
 			` did you forget to call DefineFlags? %w`, err)
 	}
 	configFlags.Profile = profile
 
 	maxAttempts, err := flags.GetInt("max-attempts")
 	if err != nil {
-		return configFlags, fmt.Errorf(`invalid "max-attempts" flag value:  %w`, err)
+		return awsConfigFlags{}, fmt.Errorf(`invalid "max-attempts" flag value:  %w`, err)
 	}
 	configFlags.RetryMaxAttempts = maxAttempts
 
 	roleStr, err := flags.GetString("role")
 	if err != nil {
-		return configFlags, fmt.Errorf(`unable to determine "role" flag value,`+
+		return awsConfigFlags{}, fmt.Errorf(`unable to determine "role" flag value,`+
 			` did you forget to call DefineFlags? %w`,
 			err)
 	}
@@ -90,7 +90,7 @@ func parseFlags(flags pflag.FlagSet) (awsConfigFlags, error) {
 
 	sessionPrefix, err := flags.GetString("session-prefix")
 	if err != nil {
-		return configFlags, fmt.Errorf(`unable to determine "session-prefix" flag value,`+
+		return awsConfigFlags{}, fmt.Errorf(`unable to determine "session-prefix" flag value,`+
 			` did you forget to call DefineFlags? %w`,
 			err)
 	}
