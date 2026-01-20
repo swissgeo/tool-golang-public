@@ -19,6 +19,10 @@ func TestBuildLink(t *testing.T) {
 			"codesuite/codebuild/007/projects/secret-project/"+
 			"build/secret-project:dead-decaf?region=venus-west-13",
 		b.Link())
+
+	b.Arn, e = arn.Parse("arn:aws:not-codebuild:moon-north-42:1337:some/resource")
+	require.NoError(t, e)
+	require.NotPanics(t, func() { b.Link() })
 }
 
 func TestBuildReportLink(t *testing.T) {
@@ -32,4 +36,8 @@ func TestBuildReportLink(t *testing.T) {
 			"some-project-reports/some-project-reports:1234"+
 			"?region=jupiter-north-2",
 		r.Link())
+
+	r.Arn, e = arn.Parse("arn:aws:not-codebuild:jupiter-north-2:42:some/resource")
+	require.NoError(t, e)
+	require.NotPanics(t, func() { r.Link() })
 }
