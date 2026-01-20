@@ -41,7 +41,6 @@ var versionCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		// TODO: change this?
 		if errors.Is(err, ErrBuildFailed) {
 			os.Exit(ErrBuildFailedCode)
 		}
