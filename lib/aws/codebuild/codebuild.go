@@ -303,9 +303,12 @@ func (c Client) GetBuildWithOptions(ctx context.Context, buildID BuildID, opt Ge
 }
 
 func (c Client) fetchReport(ctx context.Context, b *Build, testCases []TestStatus) {
-	if len(b.build.ReportArns) != 1 {
-		log.Warn("not exactly 1 report for build: %#v", b.build)
+	if len(b.build.ReportArns) == 0 {
+		log.Warn("not report for build: %#v", b.build)
 		return
+	}
+	if len(b.build.ReportArns) > 1 {
+		log.Warn("multiple reports found for build, only considering the first one: %#v", b.build)
 	}
 	a, err := arn.ParseBuildReport(b.build.ReportArns[0])
 	if err != nil {
@@ -319,9 +322,12 @@ func (c Client) fetchReport(ctx context.Context, b *Build, testCases []TestStatu
 		log.Warn("failed to fetch report for %v: %v", a, err)
 		return
 	}
-	if len(rs.Reports) != 1 {
-		log.Warn("received not exactly 1 report for %v: %v", a, rs.Reports)
+	if len(rs.Reports) == 0 {
+		log.Warn("received no report for %v", a)
 		return
+	}
+	if len(rs.Reports) > 1 {
+		log.Warn("received multiple reports, only considering the first one for %v: %v", a, rs.Reports)
 	}
 	b.report, err = newReport(rs.Reports[0])
 	if err != nil {
