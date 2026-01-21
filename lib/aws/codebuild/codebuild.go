@@ -17,27 +17,8 @@ import (
 	"github.com/spf13/pflag"
 )
 
-type Client struct {
-	client aws_codebuild.Client
-}
-
 func DefineNewClientFlags(flags *pflag.FlagSet) {
 	config.DefineFlags(flags)
-}
-
-func NewClient(ctx context.Context, flags pflag.FlagSet) (Client, error) {
-	config, err := config.LoadConfig(ctx, flags)
-	if err != nil {
-		return Client{}, fmt.Errorf("failed to load AWS config: %w", err)
-	}
-	log.Debug("Loaded AWS config: %+v", config)
-	client := aws_codebuild.NewFromConfig(config)
-	if client == nil {
-		return Client{}, errors.New("codebuild client is nil")
-	}
-	return Client{
-		client: *client,
-	}, nil
 }
 
 type GetOptions struct {
@@ -78,6 +59,78 @@ func ParseGetFlags(flags pflag.FlagSet) (GetOptions, error) {
 		WaitForCompletion: wait,
 		WaitSleepInterval: interval,
 		ProgressOutput:    progressOutput,
+	}, nil
+}
+
+type StartOptions struct {
+	SourceVersion string
+	Environment   []codebuild_types.EnvironmentVariable
+	Timeout       time.Duration
+}
+
+func DefineStartBuildFlags(flags *pflag.FlagSet) {
+	flags.StringP("source-version", "s", "",
+		"Version of the build input to be built."+
+			" Empty string means the project's default is used.")
+	flags.DurationP("timeout", "t", 0,
+		"How long should Codebuild wait before timing out the build."+
+			" Zero means the project's default is used.")
+	flags.StringArrayP("environment", "e", []string{},
+		`Environment variables to override for this build.`+
+			` In the form of "VAR=value". Can be repeated multiple times.`)
+}
+
+func ParseStartFlags(flags pflag.FlagSet) (StartOptions, error) {
+	sourceVersion, err := flags.GetString("source-version")
+	if err != nil {
+		return StartOptions{}, fmt.Errorf(`unable to determine "source-version" flag value: %w`, err)
+	}
+
+	timeout, err := flags.GetDuration("timeout")
+	if err != nil {
+		return StartOptions{}, fmt.Errorf(`invalid "timeout" flag value: %w`, err)
+	}
+
+	environmentStrings, err := flags.GetStringArray("environment")
+	if err != nil {
+		return StartOptions{}, fmt.Errorf(`invalid "environment" flag value: %w`, err)
+	}
+	var environment []codebuild_types.EnvironmentVariable
+	for _, e := range environmentStrings {
+		nameValue := strings.SplitN(e, "=", 2) //nolint:mnd
+		if len(nameValue) != 2 {               //nolint:mnd
+			return StartOptions{}, fmt.Errorf(`invalid "environment" flag value: %s`, e)
+		}
+		environment = append(environment, codebuild_types.EnvironmentVariable{
+			Name:  &nameValue[0],
+			Value: &nameValue[1],
+			Type:  codebuild_types.EnvironmentVariableTypePlaintext,
+		})
+	}
+
+	return StartOptions{
+		SourceVersion: sourceVersion,
+		Environment:   environment,
+		Timeout:       timeout,
+	}, nil
+}
+
+type Client struct {
+	client aws_codebuild.Client
+}
+
+func NewClient(ctx context.Context, flags pflag.FlagSet) (Client, error) {
+	config, err := config.LoadConfig(ctx, flags)
+	if err != nil {
+		return Client{}, fmt.Errorf("failed to load AWS config: %w", err)
+	}
+	log.Debug("Loaded AWS config: %+v", config)
+	client := aws_codebuild.NewFromConfig(config)
+	if client == nil {
+		return Client{}, errors.New("codebuild client is nil")
+	}
+	return Client{
+		client: *client,
 	}, nil
 }
 
@@ -206,59 +259,6 @@ const (
 	TestStatusSkipped   = "SKIPPED"
 	TestStatusUnknown   = "UNKNOWN"
 )
-
-type StartOptions struct {
-	SourceVersion string
-	Environment   []codebuild_types.EnvironmentVariable
-	Timeout       time.Duration
-}
-
-func DefineStartBuildFlags(flags *pflag.FlagSet) {
-	flags.StringP("source-version", "s", "",
-		"Version of the build input to be built."+
-			" Empty string means the project's default is used.")
-	flags.DurationP("timeout", "t", 0,
-		"How long should Codebuild wait before timing out the build."+
-			" Zero means the project's default is used.")
-	flags.StringArrayP("environment", "e", []string{},
-		`Environment variables to override for this build.`+
-			` In the form of "VAR=value". Can be repeated multiple times.`)
-}
-
-func ParseStartFlags(flags pflag.FlagSet) (StartOptions, error) {
-	sourceVersion, err := flags.GetString("source-version")
-	if err != nil {
-		return StartOptions{}, fmt.Errorf(`unable to determine "source-version" flag value: %w`, err)
-	}
-
-	timeout, err := flags.GetDuration("timeout")
-	if err != nil {
-		return StartOptions{}, fmt.Errorf(`invalid "timeout" flag value: %w`, err)
-	}
-
-	environmentStrings, err := flags.GetStringArray("environment")
-	if err != nil {
-		return StartOptions{}, fmt.Errorf(`invalid "environment" flag value: %w`, err)
-	}
-	var environment []codebuild_types.EnvironmentVariable
-	for _, e := range environmentStrings {
-		nameValue := strings.SplitN(e, "=", 2) //nolint:mnd
-		if len(nameValue) != 2 {               //nolint:mnd
-			return StartOptions{}, fmt.Errorf(`invalid "environment" flag value: %s`, e)
-		}
-		environment = append(environment, codebuild_types.EnvironmentVariable{
-			Name:  &nameValue[0],
-			Value: &nameValue[1],
-			Type:  codebuild_types.EnvironmentVariableTypePlaintext,
-		})
-	}
-
-	return StartOptions{
-		SourceVersion: sourceVersion,
-		Environment:   environment,
-		Timeout:       timeout,
-	}, nil
-}
 
 func (c Client) StartBuildWithFlags(ctx context.Context, project string, flags pflag.FlagSet) (Build, error) {
 	opt, err := ParseStartFlags(flags)
