@@ -56,7 +56,7 @@ func TestCacheDelete(t *testing.T) {
 	completions, dir, err := cache.Read("subCmd-missing")
 	assert.Nil(t, completions)
 	assert.Equal(t, cobra.ShellCompDirectiveError, dir)
-	assert.ErrorIs(t, err, completioncache.ErrCacheDeleted)
+	require.ErrorIs(t, err, completioncache.ErrCacheDeleted)
 
 	err = cache.Write("subCmd-FlagA", []cobra.Completion{"val-a", "val-b"}, cobra.ShellCompDirectiveDefault)
 	assert.ErrorIs(t, err, completioncache.ErrCacheDeleted)

@@ -4,3 +4,4 @@ e2e-tests
 !e2e-tests/
 aws-ssm
 !aws-ssm/
+bin/

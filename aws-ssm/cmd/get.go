@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -59,6 +60,7 @@ func runGetCmd(opts getCmdOptions) error {
 }
 
 func getSSMParameter(opts getCmdOptions) (string, error) {
+	ctx := context.Background()
 	cmdArgs := []string{"ssm", "get-parameter", "--profile", opts.profile, "--name", opts.name, "--with-decryption"}
 	if opts.valueOnly {
 		cmdArgs = append(cmdArgs, "--query", "Parameter.Value", "--output", "text")
@@ -68,7 +70,7 @@ func getSSMParameter(opts getCmdOptions) (string, error) {
 		fmt.Println("aws", strings.Join(cmdArgs, " "))
 	}
 
-	awsCmd := exec.Command("aws", cmdArgs...)
+	awsCmd := exec.CommandContext(ctx, "aws", cmdArgs...)
 	awsCmd.Stderr = os.Stderr
 	res, err := awsCmd.Output()
 	if err != nil {

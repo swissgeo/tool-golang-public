@@ -112,7 +112,7 @@ type content struct {
 	CompDir     cobra.ShellCompDirective
 }
 
-func (c fileCache) contentExpired(v content) bool {
+func (c *fileCache) contentExpired(v content) bool {
 	return v.CreatedAt.Add(c.validDuration).Before(time.Now())
 }
 
