@@ -17,6 +17,8 @@ import (
 	"github.com/spf13/pflag"
 )
 
+var ErrFetchReportFailed = errors.New("failure while attempting to fetch build report")
+
 func DefineNewClientFlags(flags *pflag.FlagSet) {
 	config.DefineFlags(flags)
 }
@@ -187,53 +189,50 @@ func (c Client) GetBuildWithOptions(ctx context.Context, buildID BuildID, opt Ge
 			return Build{}, e
 		}
 		if opt.FetchReport {
-			c.fetchReport(ctx, &b, opt.TestCases)
+			e = c.fetchReport(ctx, &b, opt.TestCases)
+			if e != nil {
+				e = errors.Join(e, ErrFetchReportFailed)
+			}
+			return b, e
 		}
 		return b, nil
 	}
 }
 
-func (c Client) fetchReport(ctx context.Context, b *Build, testCases []TestStatus) {
+func (c Client) fetchReport(ctx context.Context, b *Build, testCases []TestStatus) error {
 	if len(b.build.ReportArns) == 0 {
-		log.Warn("not report for build: %#v", b.build)
-		return
-	}
-	if len(b.build.ReportArns) > 1 {
-		log.Warn("multiple reports found for build, only considering the first one: %#v", b.build)
+		return nil
 	}
 	a, err := arn.ParseBuildReport(b.build.ReportArns[0])
 	if err != nil {
-		log.Warn("failed to parse report ARN: %v: %v", b.build.ReportArns[0], err)
-		return
+		return fmt.Errorf("failed to parse report ARN: %v: %w", b.build.ReportArns[0], err)
 	}
 	rs, err := c.client.BatchGetReports(ctx, &aws_codebuild.BatchGetReportsInput{
 		ReportArns: []string{a.String()},
 	})
 	if err != nil {
-		log.Warn("failed to fetch report for %v: %v", a, err)
-		return
+		return err
 	}
 	if len(rs.Reports) == 0 {
-		log.Warn("received no report for %v", a)
-		return
+		return fmt.Errorf("received no report for %v", a)
 	}
-	if len(rs.Reports) > 1 {
-		log.Warn("received multiple reports, only considering the first one for %v: %v", a, rs.Reports)
-	}
-	b.report, err = newReport(rs.Reports[0])
-	if err != nil {
-		log.Warn("failed to attach report: %v", err)
-		return
-	}
-	if len(testCases) > 0 {
-		b.report.TestCases = make(map[TestStatus][]codebuild_types.TestCase)
-	}
-	for _, status := range testCases {
-		err = c.fetchTestCases(ctx, status, &b.report)
-		if err != nil {
-			log.Warn("failed to fetch test cases: %v", err)
+	for i := range rs.Reports {
+		r, e := newReport(rs.Reports[i])
+		if e != nil {
+			return fmt.Errorf("failed to attach report: %w", e)
 		}
+		if len(testCases) > 0 {
+			r.TestCases = make(map[TestStatus][]codebuild_types.TestCase)
+		}
+		for _, status := range testCases {
+			e = c.fetchTestCases(ctx, status, &r)
+			if e != nil {
+				return fmt.Errorf("failed to fetch test cases: %w", e)
+			}
+		}
+		b.reports = append(b.reports, r)
 	}
+	return nil
 }
 
 func (c Client) fetchTestCases(ctx context.Context, status TestStatus, r *Report) error {

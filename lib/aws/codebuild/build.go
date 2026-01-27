@@ -26,10 +26,10 @@ func ParseBuildID(s string) (BuildID, error) {
 }
 
 type Build struct {
-	ID     BuildID
-	Arn    arn.Build
-	build  codebuild_types.Build
-	report Report
+	ID      BuildID
+	Arn     arn.Build
+	build   codebuild_types.Build
+	reports []Report
 }
 
 func newBuild(b codebuild_types.Build) (Build, error) {
@@ -49,6 +49,10 @@ func newBuild(b codebuild_types.Build) (Build, error) {
 		ID:    buildID,
 		build: b,
 	}, nil
+}
+
+func (b Build) ReportsCount() int {
+	return len(b.reports)
 }
 
 func (b Build) ShortString(colorise bool) string {
@@ -82,12 +86,14 @@ func (b Build) Succeeded() bool {
 
 func (b Build) String(colorise bool, detailed bool) string {
 	s := fmt.Sprintf("Build %s\n%s\n%s\n", b.Arn.String(), b.Link(), b.ShortString(colorise))
-	if b.report.FaultsCount() > 0 {
-		color := fmtc.NoColor
-		if colorise {
-			color = fmtc.Red
+	for _, r := range b.reports {
+		if r.FaultsCount() > 0 {
+			color := fmtc.NoColor
+			if colorise {
+				color = fmtc.Red
+			}
+			s += fmt.Sprintf("\n%s", fmtc.Colorise(color, r.String(detailed)))
 		}
-		s += fmt.Sprintf("\n%s", fmtc.Colorise(color, b.report.String(detailed)))
 	}
 	return s
 }
