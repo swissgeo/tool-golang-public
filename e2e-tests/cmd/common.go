@@ -21,8 +21,16 @@ func initPrint(cmd *cobra.Command) error {
 func printTestResult(
 	build codebuild.Build,
 	detailed bool,
-) {
+) error {
+	reportsCount := build.ReportsCount()
+	if reportsCount == 0 {
+		return fmt.Errorf("no test report found for build: %v", build)
+	}
+	if reportsCount > 1 {
+		fmt.Printf("%d test reports found, expected exactly 1", reportsCount)
+	}
 	fmt.Print(build.String(!noColor, detailed))
+	return nil
 }
 
 func projectName(staging string) string {

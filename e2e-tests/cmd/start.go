@@ -99,7 +99,10 @@ var startCmd = &cobra.Command{
 			return e
 		}
 
-		printTestResult(re, false)
+		e = printTestResult(re, false)
+		if e != nil {
+			return e
+		}
 		if !re.Succeeded() {
 			return ErrTestFailed
 		}

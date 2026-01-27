@@ -70,7 +70,10 @@ Note that if the tests run is on-going, the command waits until its is finished.
 		if e != nil {
 			return fmt.Errorf("failed to get tests run %s: %w", flags.TestID, e)
 		}
-		printTestResult(r, flags.Detailed)
+		e = printTestResult(r, flags.Detailed)
+		if e != nil {
+			return e
+		}
 		if !r.Succeeded() {
 			return ErrTestFailed
 		}
