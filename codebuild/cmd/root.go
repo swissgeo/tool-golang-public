@@ -5,23 +5,21 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/geoadmin/tool-golang-bgdi/lib/aws/codebuild"
 	"github.com/geoadmin/tool-golang-bgdi/lib/fmtc"
 	"github.com/geoadmin/tool-golang-bgdi/lib/version"
 	"github.com/spf13/cobra"
 )
 
-var ErrTestFailed = errors.New("test failed")
-
-const ErrTestFailedCode = 2
+const ErrBuildFailedCode = 2
 
 //-----------------------------------------------------------------------------
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "e2e-tests",
-	Short: "BGDI CLI tool to control E2E tests",
-	Long: `This tool use the AWS SDK to control Codebuild to start E2E tests on Codebuild
-and get the final reports`,
+	Use:           "codebuild",
+	Short:         "BGDI CLI tool to control Codebuild projects",
+	Long:          `This tool use the AWS SDK to control BGDI Codebuild projects.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
@@ -43,8 +41,8 @@ var versionCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		if errors.Is(err, ErrTestFailed) {
-			os.Exit(ErrTestFailedCode)
+		if errors.Is(err, ErrBuildFailed) {
+			os.Exit(ErrBuildFailedCode)
 		}
 		fmt.Fprintln(os.Stderr, string(fmtc.Red)+err.Error()+string(fmtc.Reset))
 		os.Exit(1)
@@ -55,12 +53,7 @@ func Execute() {
 
 func init() {
 	rootCmd.AddCommand(versionCmd)
-
-	rootCmd.PersistentFlags().Bool("no-color", false, "Do not use color in output")
-	rootCmd.PersistentFlags().Bool("no-profile", false, "Do not use AWS profile swisstopo-bgdi-builder for credentials")
-	rootCmd.PersistentFlags().MarkDeprecated("no-profile", `use --profile=""`) //nolint:errcheck // not actionable
-	rootCmd.PersistentFlags().Bool("no-progress", false, "For long running command don't display progress indicator")
-	rootCmd.PersistentFlags().Int("interval", 1, "Interval in seconds to check the E2E tests status")
+	codebuild.DefineNewClientFlags(rootCmd.Flags())
 }
 
 //-----------------------------------------------------------------------------

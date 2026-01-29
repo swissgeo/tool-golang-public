@@ -37,4 +37,8 @@ func Println(color Color, s ...any) {
 	}
 }
 
+func Colorise(color Color, s string) string {
+	return fmt.Sprintf("%s%s%s", color, s, Reset)
+}
+
 //-----------------------------------------------------------------------------
