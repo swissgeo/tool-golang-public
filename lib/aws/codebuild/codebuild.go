@@ -23,6 +23,24 @@ func DefineNewClientFlags(flags *pflag.FlagSet) {
 	config.DefineFlags(flags)
 }
 
+func DefineGetBuildFlags(flags *pflag.FlagSet) {
+	flags.Duration("wait-interval", 3*time.Second, "How long to wait between checks.") //nolint:mnd
+	flags.BoolP("wait", "w", true, "Whether to wait for completion.")
+	flags.BoolP("quiet-wait", "q", false, "Disable wait feedback indicator.")
+}
+
+func DefineStartBuildFlags(flags *pflag.FlagSet) {
+	flags.StringP("source-version", "s", "",
+		"Version of the build input to be built."+
+			" Empty string means the project's default is used.")
+	flags.DurationP("timeout", "t", 0,
+		"How long should Codebuild wait before timing out the build."+
+			" Zero means the project's default is used.")
+	flags.StringArrayP("environment", "e", []string{},
+		`Environment variables to override for this build.`+
+			` In the form of "VAR=value". Can be repeated multiple times.`)
+}
+
 type GetOptions struct {
 	WaitForCompletion bool
 	WaitSleepInterval time.Duration
@@ -31,10 +49,10 @@ type GetOptions struct {
 	TestCases         []TestStatus
 }
 
-func DefineGetBuildFlags(flags *pflag.FlagSet) {
-	flags.Duration("wait-interval", 3*time.Second, "How long to wait between checks.") //nolint:mnd
-	flags.BoolP("wait", "w", true, "Whether to wait for completion.")
-	flags.BoolP("quiet-wait", "q", false, "Disable wait feedback indicator.")
+type StartOptions struct {
+	SourceVersion string
+	Environment   []codebuild_types.EnvironmentVariable
+	Timeout       time.Duration
 }
 
 func ParseGetFlags(flags pflag.FlagSet) (GetOptions, error) {
@@ -62,24 +80,6 @@ func ParseGetFlags(flags pflag.FlagSet) (GetOptions, error) {
 		WaitSleepInterval: interval,
 		ProgressOutput:    progressOutput,
 	}, nil
-}
-
-type StartOptions struct {
-	SourceVersion string
-	Environment   []codebuild_types.EnvironmentVariable
-	Timeout       time.Duration
-}
-
-func DefineStartBuildFlags(flags *pflag.FlagSet) {
-	flags.StringP("source-version", "s", "",
-		"Version of the build input to be built."+
-			" Empty string means the project's default is used.")
-	flags.DurationP("timeout", "t", 0,
-		"How long should Codebuild wait before timing out the build."+
-			" Zero means the project's default is used.")
-	flags.StringArrayP("environment", "e", []string{},
-		`Environment variables to override for this build.`+
-			` In the form of "VAR=value". Can be repeated multiple times.`)
 }
 
 func ParseStartFlags(flags pflag.FlagSet) (StartOptions, error) {
