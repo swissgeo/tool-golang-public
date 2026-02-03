@@ -100,7 +100,7 @@ func parseFlags(flags pflag.FlagSet) (awsConfigFlags, error) {
 }
 
 func getSessionName(role arn.Role, prefix string) string {
-	return fmt.Sprintf("%s/%s", prefix, role.ResourceSubID())
+	return fmt.Sprintf("%s%s", prefix, role.ResourceSubID())
 }
 
 func getCredentialsProvider(ctx context.Context, configFlags awsConfigFlags) (aws.CredentialsProvider, error) {
