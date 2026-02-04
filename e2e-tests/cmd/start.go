@@ -89,6 +89,7 @@ var startCmd = &cobra.Command{
 			WaitForCompletion: true,
 			WaitSleepInterval: time.Duration(flags.Interval) * time.Second,
 			ProgressOutput:    os.Stdout,
+			FetchReport:       true,
 		}
 		if !flags.ShowProgress {
 			getOpt.ProgressOutput = nil
