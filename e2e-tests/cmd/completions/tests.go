@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/spf13/cobra"
 )
@@ -107,22 +108,37 @@ func getE2ERepo() (string, error) {
 		}
 	}
 
+	// Update the repo
+	err = repo.Fetch(&git.FetchOptions{
+		Auth:       auth,
+		Depth:      1,
+		Force:      true,
+		Prune:      true,
+		RemoteName: "origin",
+	})
+	if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
+		return "", fmt.Errorf("failed to fetch repo: %w", err)
+	}
+
+	// Get origin/master reference
+	ref, err := repo.Reference(plumbing.ReferenceName("refs/remotes/origin/master"), true)
+	if err != nil {
+		return "", fmt.Errorf("failed to get origin/master ref: %w", err)
+	}
+
 	// Get the worktree
 	workTree, err := repo.Worktree()
 	if err != nil {
 		return "", fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	// Update the repo
-	err = workTree.Pull(&git.PullOptions{
-		Auth:         auth,
-		Progress:     nil,
-		SingleBranch: true,
-		Depth:        1,
-		Force:        true,
+	// Update the worktree repo
+	err = workTree.Reset(&git.ResetOptions{
+		Mode:   git.HardReset,
+		Commit: ref.Hash(),
 	})
-	if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
-		return "", fmt.Errorf("failed to pull repo: %w", err)
+	if err != nil {
+		return "", fmt.Errorf("failed to reset repo to remote master: %w", err)
 	}
 
 	return repoPath, nil
