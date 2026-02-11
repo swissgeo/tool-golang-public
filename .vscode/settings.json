@@ -1,0 +1,7 @@
+{
+    "go.lintFlags": [
+        "--fast-only",
+        "--path-mode=abs"
+    ],
+    "go.lintTool": "golangci-lint-v2"
+}
