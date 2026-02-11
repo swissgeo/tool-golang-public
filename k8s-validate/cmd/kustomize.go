@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -67,8 +68,9 @@ func findFolders() ([]string, error) {
 
 func validate(folder string) bool {
 	indent := "60"
+	ctx := context.Background()
 	// Build the kustomization.yaml with kustomize
-	cmd := exec.Command("kustomize", "build", folder)
+	cmd := exec.CommandContext(ctx, "kustomize", "build", folder)
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
