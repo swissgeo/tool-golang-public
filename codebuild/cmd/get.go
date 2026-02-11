@@ -52,13 +52,13 @@ var getCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		log.Debug("Initialised Codebuild client: %v", client)
-		log.Debug("Getting build %v with options %+v", buildID, getOpt)
+		log.Debugf("Initialised Codebuild client: %v", client)
+		log.Debugf("Getting build %v with options %+v", buildID, getOpt)
 		build, err := client.GetBuildWithOptions(ctx, buildID, getOpt)
 		if err != nil {
 			return err
 		}
-		log.Debug("Got build %v", build)
+		log.Debugf("Got build %v", build)
 		if showTestReport {
 			fmt.Print(build.String(false, false))
 		} else {
