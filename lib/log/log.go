@@ -1,4 +1,4 @@
-package log
+package log //nolint:revive // TODO we should rename this package
 
 import (
 	"context"
