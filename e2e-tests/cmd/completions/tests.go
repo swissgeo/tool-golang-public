@@ -12,12 +12,19 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/spf13/cobra"
+
+	"github.com/geoadmin/tool-golang-bgdi/e2e-tests/cmd/organization"
 )
 
 //-----------------------------------------------------------------------------
 
-func CompleteTests(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
-	repoPath, err := getE2ERepo()
+func CompleteTests(cmd *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
+	org, err := cmd.Flags().GetString("org")
+	if err != nil {
+		fmt.Printf("Error getting --org flag: %v\n", err)
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	repoPath, err := getE2ERepo(org)
 	if err != nil {
 		fmt.Printf("Error finding git repo: %v\n", err)
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -71,10 +78,21 @@ func findTests(repoPath string) ([]string, error) {
 
 //-----------------------------------------------------------------------------
 
-func getE2ERepo() (string, error) {
+func getE2ERepo(org string) (string, error) {
 	var repo *git.Repository
 	var err error
-	repoPath := os.Getenv("HOME") + "/.e2e-tests"
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get the cache directory: %w", err)
+	}
+
+	repoPath := filepath.Join(cacheDir, fmt.Sprintf("e2e-tests-%s", org))
+	repoURL := fmt.Sprintf("git@github.com:%s/infra-e2e-tests.git", org)
+	mainBranch := "master"
+	if org == string(organization.SWISSGEO) {
+		// Swissgeo organization repo use main as main branch instead of master
+		mainBranch = "main"
+	}
 
 	auth, err := ssh.NewSSHAgentAuth("git")
 	if err != nil {
@@ -86,15 +104,15 @@ func getE2ERepo() (string, error) {
 	case os.IsNotExist(err):
 		// folder does not exist, clone the repo
 		repo, err = git.PlainClone(repoPath, false, &git.CloneOptions{
-			URL:           "git@github.com:geoadmin/infra-e2e-tests.git",
+			URL:           repoURL,
 			Auth:          auth,
-			ReferenceName: "refs/heads/master",
+			ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", mainBranch)),
 			SingleBranch:  true,
 			Depth:         1,
 			Progress:      nil,
 		})
 		if err != nil {
-			return "", fmt.Errorf("failed to clone repo: %w", err)
+			return "", fmt.Errorf("failed to clone repo %s into %s: %w", repoURL, repoPath, err)
 		}
 
 	case err != nil:
@@ -120,10 +138,10 @@ func getE2ERepo() (string, error) {
 		return "", fmt.Errorf("failed to fetch repo: %w", err)
 	}
 
-	// Get origin/master reference
-	ref, err := repo.Reference(plumbing.ReferenceName("refs/remotes/origin/master"), true)
+	// Get origin/master|main reference
+	ref, err := repo.Reference(plumbing.ReferenceName(fmt.Sprintf("refs/remotes/origin/%s", mainBranch)), true)
 	if err != nil {
-		return "", fmt.Errorf("failed to get origin/master ref: %w", err)
+		return "", fmt.Errorf("failed to get origin/%s ref: %w", mainBranch, err)
 	}
 
 	// Get the worktree
@@ -138,7 +156,7 @@ func getE2ERepo() (string, error) {
 		Commit: ref.Hash(),
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to reset repo to remote master: %w", err)
+		return "", fmt.Errorf("failed to reset repo to remote %s: %w", mainBranch, err)
 	}
 
 	return repoPath, nil
