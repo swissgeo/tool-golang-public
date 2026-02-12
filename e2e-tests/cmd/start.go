@@ -15,6 +15,7 @@ import (
 	"github.com/geoadmin/tool-golang-bgdi/lib/str"
 	"github.com/spf13/cobra"
 
+	"github.com/geoadmin/tool-golang-bgdi/e2e-tests/cmd/organization"
 	"github.com/geoadmin/tool-golang-bgdi/lib/aws/codebuild"
 )
 
@@ -27,6 +28,7 @@ type StartCmdFlags struct {
 	DoDataTest   bool
 	ShowProgress bool
 	Interval     int
+	Organization string
 }
 
 //-----------------------------------------------------------------------------
@@ -74,6 +76,33 @@ var startCmd = &cobra.Command{
 		if flags.DoDataTest {
 			startOpt.Timeout = 60 * time.Minute //nolint:mnd
 		}
+
+		// Set the default AWS config profile when no --role and --profile options are given
+		// the default profile is set based on --org option
+		role, e := cmd.Flags().GetString("role")
+		if e != nil {
+			return e
+		}
+		profile, e := cmd.Flags().GetString("profile")
+		if e != nil {
+			return e
+		}
+		if role == "" && profile == "" {
+			// Based on organization we need to set different AWS profile when no role is used
+			switch flags.Organization {
+			case string(organization.GEOADMIN):
+				e = cmd.Flags().Set("profile", "swisstopo-bgdi-builder")
+				if e != nil {
+					return e
+				}
+			case string(organization.SWISSGEO):
+				e = cmd.Flags().Set("profile", "swisstopo-swissgeo-builder")
+				if e != nil {
+					return e
+				}
+			}
+		}
+
 		client, e := codebuild.NewClient(ctx, *cmd.Flags())
 		if e != nil {
 			return e
@@ -125,15 +154,36 @@ func init() {
 	startCmd.Flags().String("revision", "master", "Revision of the tests to run. Default is master")
 	startCmd.Flags().Bool("data-tests", false, "Do also data integration tests (tests take much longer !)")
 	startCmd.Flags().StringArrayP("tests", "t", []string{}, "Test to run. Default is all tests")
+	startCmd.Flags().String(
+		"org",
+		string(organization.GEOADMIN),
+		"Organization of the tests to run (geoadmin or swissgeo). Default is geoadmin",
+	)
 
 	// Completions functions
 	_ = startCmd.RegisterFlagCompletionFunc(
 		"staging",
-		func(_ *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective,
-		) {
-			return []cobra.Completion{"dev", "int", "prod"}, cobra.ShellCompDirectiveDefault
-		})
+		cobra.FixedCompletions(
+			[]cobra.Completion{
+				cobra.Completion("dev"),
+				cobra.Completion("int"),
+				cobra.Completion("prod"),
+			},
+			cobra.ShellCompDirectiveNoFileComp,
+		),
+	)
+	_ = startCmd.RegisterFlagCompletionFunc("revision", cobra.NoFileCompletions)
 	_ = startCmd.RegisterFlagCompletionFunc("tests", completions.CompleteTests)
+	_ = startCmd.RegisterFlagCompletionFunc(
+		"org",
+		cobra.FixedCompletions(
+			[]cobra.Completion{
+				cobra.Completion(organization.GEOADMIN),
+				cobra.Completion(organization.SWISSGEO),
+			},
+			cobra.ShellCompDirectiveNoFileComp,
+		),
+	)
 }
 
 //-----------------------------------------------------------------------------
@@ -153,6 +203,7 @@ func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
 	var flags StartCmdFlags
 	flags.Staging = cmd.Flag("staging").Value.String()
 	flags.Revision = cmd.Flag("revision").Value.String()
+	flags.Organization = cmd.Flag("org").Value.String()
 	doDataTest, err := cmd.Flags().GetBool("data-tests")
 	if err != nil {
 		return StartCmdFlags{}, err

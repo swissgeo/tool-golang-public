@@ -3,5 +3,6 @@
         "--fast-only",
         "--path-mode=abs"
     ],
-    "go.lintTool": "golangci-lint-v2"
+    "go.lintTool": "golangci-lint-v2",
+    "go.diagnostic.vulncheck": "Imports"
 }

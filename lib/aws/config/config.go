@@ -35,7 +35,7 @@ func init() {
 func DefineFlags(flags *pflag.FlagSet) {
 	flags.Int("max-attempts", 3, "Maximum number of attempts when sending requests to AWS.") //nolint:mnd
 	flags.String("region", "eu-central-1", "AWS region to send requests to.")
-	flags.String("profile", "swisstopo-bgdi-builder", "AWS CLI profile to use.")
+	flags.String("profile", "", "AWS CLI profile to use.")
 	flags.String("role", "",
 		"ARN of an IAM role to use to communicate with AWS. E.g. arn:aws:iam::1234:role/SomeRoleName")
 	flags.Duration("session-duration", 45*time.Minute, //nolint:mnd
