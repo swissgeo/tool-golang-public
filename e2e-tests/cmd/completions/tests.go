@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -18,7 +17,7 @@ import (
 
 //-----------------------------------------------------------------------------
 
-func CompleteTests(cmd *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
+func CompleteTests(cmd *cobra.Command, _ []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
 	org, err := cmd.Flags().GetString("org")
 	if err != nil {
 		fmt.Printf("Error getting --org flag: %v\n", err)
@@ -30,7 +29,7 @@ func CompleteTests(cmd *cobra.Command, _ []string, _ string) ([]cobra.Completion
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	testNames, err := findTests(repoPath)
+	testNames, err := findTests(repoPath, toComplete)
 	if err != nil {
 		fmt.Printf("Error finding tests: %v\n", err)
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -41,31 +40,46 @@ func CompleteTests(cmd *cobra.Command, _ []string, _ string) ([]cobra.Completion
 
 //-----------------------------------------------------------------------------
 
-func findTests(repoPath string) ([]string, error) {
+func pathToPythonModule(root string, path string) string {
+	// Convert file path to Python module notation removing the root prefix
+	relPath := strings.TrimPrefix(path, root+string(os.PathSeparator))
+	moduleName := strings.ReplaceAll(relPath, string(os.PathSeparator), ".")
+	moduleName = strings.TrimSuffix(moduleName, ".py")
+	return moduleName
+}
+
+//-----------------------------------------------------------------------------
+
+func findTests(repoPath string, toComplete string) ([]string, error) {
 	var testNames []string
-	repoPath = fmt.Sprintf("%s/tests", repoPath)
+	root := filepath.Join(repoPath, "tests")
+	compPathPrefix := filepath.Join(root, toComplete)
 
 	// Walk the repo to find test files using WalkDir
-	err := filepath.WalkDir(repoPath, func(path string, d os.DirEntry, e error) error {
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, e error) error {
 		if e != nil {
 			return e
 		}
 
-		if strings.HasSuffix(path, "__pycache__") {
+		if d.IsDir() && strings.HasSuffix(path, "__pycache__") {
 			return filepath.SkipDir
 		}
 
-		// Match test files
-		matched, _ := regexp.MatchString(`test_.*\.py$|__init__\.py$`, d.Name())
-		if matched {
+		if d.IsDir() && strings.HasSuffix(path, "lib") {
+			return filepath.SkipDir
+		}
+
+		if d.IsDir() && path != root && !strings.HasPrefix(path, compPathPrefix) {
+			return filepath.SkipDir
+		}
+
+		if d.IsDir() {
+			moduleName := pathToPythonModule(root, path)
+			testNames = append(testNames, moduleName)
+		} else if strings.HasPrefix(d.Name(), "test_") && strings.HasSuffix(d.Name(), ".py") {
 			// Convert file path to Python module notation
-			relPath := strings.TrimPrefix(path, repoPath+"/")
-			moduleName := strings.ReplaceAll(relPath, "/", ".")
-			moduleName = strings.TrimSuffix(moduleName, ".py")
-			moduleName = strings.TrimSuffix(moduleName, ".__init__") // Remove trailing .__init__
-			if moduleName != "__init__" {
-				testNames = append(testNames, moduleName)
-			}
+			moduleName := pathToPythonModule(root, path)
+			testNames = append(testNames, moduleName)
 		}
 		return nil
 	})
