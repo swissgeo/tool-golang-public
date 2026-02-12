@@ -31,6 +31,13 @@ type StartCmdFlags struct {
 	Organization string
 }
 
+func boolToStr(b bool) string {
+	if b {
+		return "1"
+	}
+	return "0"
+}
+
 //-----------------------------------------------------------------------------
 
 // startCmd represents the start command
@@ -63,7 +70,7 @@ var startCmd = &cobra.Command{
 				},
 				{
 					Name:  str.Ptr("DO_DATA_TEST"),
-					Value: str.Ptr("1"),
+					Value: str.Ptr(boolToStr(flags.DoDataTest)),
 					Type:  codebuild_types.EnvironmentVariableTypePlaintext,
 				},
 				{
