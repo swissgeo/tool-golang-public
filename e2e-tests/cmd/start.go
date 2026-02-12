@@ -157,7 +157,7 @@ func init() {
 	startCmd.Flags().String(
 		"org",
 		string(organization.GEOADMIN),
-		"Organization of the tests to run (bgdi or swissgeo). Default is bgdi",
+		"Organization of the tests to run (geoadmin or swissgeo). Default is geoadmin",
 	)
 
 	// Completions functions
