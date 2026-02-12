@@ -57,8 +57,6 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 
 	rootCmd.PersistentFlags().Bool("no-color", false, "Do not use color in output")
-	rootCmd.PersistentFlags().Bool("no-profile", false, "Do not use AWS profile swisstopo-bgdi-builder for credentials")
-	rootCmd.PersistentFlags().MarkDeprecated("no-profile", `use --profile=""`) //nolint:errcheck // not actionable
 	rootCmd.PersistentFlags().Bool("no-progress", false, "For long running command don't display progress indicator")
 	rootCmd.PersistentFlags().Int("interval", 1, "Interval in seconds to check the E2E tests status")
 }
