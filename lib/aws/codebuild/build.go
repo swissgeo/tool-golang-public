@@ -3,6 +3,7 @@ package codebuild
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	codebuild_types "github.com/aws/aws-sdk-go-v2/service/codebuild/types"
@@ -85,17 +86,18 @@ func (b Build) Succeeded() bool {
 }
 
 func (b Build) String(colorise bool, detailed bool) string {
-	s := fmt.Sprintf("Build %s\n%s\n%s\n", b.Arn.String(), b.Link(), b.ShortString(colorise))
+	var s strings.Builder
+	s.WriteString(fmt.Sprintf("Build %s\n%s\n%s\n", b.Arn.String(), b.Link(), b.ShortString(colorise)))
 	for _, r := range b.reports {
 		if r.FaultsCount() > 0 {
 			color := fmtc.NoColor
 			if colorise {
 				color = fmtc.Red
 			}
-			s += fmt.Sprintf("\n%s", fmtc.Colorise(color, r.String(detailed)))
+			s.WriteString(fmt.Sprintf("\n%s", fmtc.Colorise(color, r.String(detailed))))
 		}
 	}
-	return s
+	return s.String()
 }
 
 func (b Build) Link() string {

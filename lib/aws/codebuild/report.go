@@ -41,22 +41,23 @@ func testCaseToString(t codebuild_types.TestCase, detailed bool) string {
 }
 
 func (r Report) String(detailed bool) string {
-	s := fmt.Sprintf("Build report %s\n", r.Arn.String())
+	var s strings.Builder
+	s.WriteString(fmt.Sprintf("Build report %s\n", r.Arn.String()))
 	for status, tcs := range r.TestCases {
 		if len(tcs) > 0 {
-			s += fmt.Sprintf("%d tests in state %s\n", len(tcs), status)
+			s.WriteString(fmt.Sprintf("%d tests in state %s\n", len(tcs), status))
 		}
 		for _, t := range tcs {
-			s += testCaseToString(t, detailed)
+			s.WriteString(testCaseToString(t, detailed))
 		}
 	}
 	faultyPct := "NaN%"
 	if r.TestsCount != 0 {
 		faultyPct = fmt.Sprintf("%d%%", r.FaultsCount()*100/r.TestsCount)
 	}
-	s += fmt.Sprintf("\nTests failures/errors %s (%d/%d)\n", faultyPct, r.FaultsCount(), r.TestsCount)
-	s += fmt.Sprintf("%s\n", r.Link())
-	return s
+	s.WriteString(fmt.Sprintf("\nTests failures/errors %s (%d/%d)\n", faultyPct, r.FaultsCount(), r.TestsCount))
+	s.WriteString(fmt.Sprintf("%s\n", r.Link()))
+	return s.String()
 }
 
 func (r Report) FaultsCount() int {

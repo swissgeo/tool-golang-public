@@ -112,7 +112,7 @@ func getCredentialsProvider(ctx context.Context, configFlags awsConfigFlags) (aw
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("Loaded AWS config for STS: %+v", cfg)
+	log.Debugf("Loaded AWS config for STS: %+v", cfg)
 	stsClient := sts.NewFromConfig(cfg)
 
 	sessionName := getSessionName(configFlags.Role, configFlags.SessionNamePrefix)
@@ -122,7 +122,7 @@ func getCredentialsProvider(ctx context.Context, configFlags awsConfigFlags) (aw
 		RoleSessionName: &sessionName,
 		DurationSeconds: &sessionDurationInt32,
 	}
-	log.Debug("Calling stsClient.AssumeRole(%+v)", assumeRoleInput)
+	log.Debugf("Calling stsClient.AssumeRole(%+v)", assumeRoleInput)
 	assumeRoleOutput, err := stsClient.AssumeRole(ctx, &assumeRoleInput)
 	// NOT printing the output as it contains credentials
 	if err != nil {
@@ -156,7 +156,7 @@ func getConfigLoaders(ctx context.Context, flags pflag.FlagSet) ([]aws_config.Lo
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("Parsed AWS config flags: %+v", configFlags)
+	log.Debugf("Parsed AWS config flags: %+v", configFlags)
 
 	credentialsProvider, err := getCredentialsProvider(ctx, configFlags)
 	if err != nil {

@@ -35,7 +35,7 @@ var startCmd = &cobra.Command{
 		if e != nil {
 			return e
 		}
-		log.Debug("Parsed get options: %+v", getOpts)
+		log.Debugf("Parsed get options: %+v", getOpts)
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop() // Ensure cleanup
@@ -44,13 +44,13 @@ var startCmd = &cobra.Command{
 		if e != nil {
 			return e
 		}
-		log.Debug("Initialised Codebuild client: %+v", client)
+		log.Debugf("Initialised Codebuild client: %+v", client)
 
 		build, e := client.StartBuildWithFlags(ctx, projects[0], *cmd.Flags())
 		if e != nil {
 			return e
 		}
-		log.Debug("Started build: %+v", build.Arn)
+		log.Debugf("Started build: %+v", build.Arn)
 		fmt.Println(build.Link())
 
 		if getOpts.WaitForCompletion {
@@ -58,13 +58,13 @@ var startCmd = &cobra.Command{
 			if e != nil {
 				return e
 			}
-			log.Debug("Build completed with status %v", build.Status())
+			log.Debugf("Build completed with status %v", build.Status())
 			if build.Status() != codebuild_types.StatusTypeSucceeded {
 				fmt.Printf("Build did not complete successfully: status=%v\n", build.Status())
 				return ErrBuildFailed
 			}
 		} else {
-			log.Debug("Not waiting for build completion.")
+			log.Debugf("Not waiting for build completion.")
 		}
 		return nil
 	},

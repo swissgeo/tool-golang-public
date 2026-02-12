@@ -1,4 +1,4 @@
-package log
+package log //nolint:revive // TODO we should rename this package
 
 import (
 	"context"
@@ -33,7 +33,7 @@ func ParseFlags(flags pflag.FlagSet) error {
 	return nil
 }
 
-func Log(level slog.Level, format string, a ...any) {
+func Logf(level slog.Level, format string, a ...any) {
 	if !parsedFlags {
 		_ = ParseFlags(*pflag.CommandLine)
 	}
@@ -41,18 +41,18 @@ func Log(level slog.Level, format string, a ...any) {
 	slog.Default().Log(context.Background(), level, msg)
 }
 
-func Debug(format string, a ...any) {
-	Log(slog.LevelDebug, format, a...)
+func Debugf(format string, a ...any) {
+	Logf(slog.LevelDebug, format, a...)
 }
 
-func Info(format string, a ...any) {
-	Log(slog.LevelInfo, format, a...)
+func Infof(format string, a ...any) {
+	Logf(slog.LevelInfo, format, a...)
 }
 
-func Warn(format string, a ...any) {
-	Log(slog.LevelWarn, format, a...)
+func Warnf(format string, a ...any) {
+	Logf(slog.LevelWarn, format, a...)
 }
 
-func Error(format string, a ...any) {
-	Log(slog.LevelError, format, a...)
+func Errorf(format string, a ...any) {
+	Logf(slog.LevelError, format, a...)
 }

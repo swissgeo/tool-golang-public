@@ -126,7 +126,7 @@ func NewClient(ctx context.Context, flags pflag.FlagSet) (Client, error) {
 	if err != nil {
 		return Client{}, fmt.Errorf("failed to load AWS config: %w", err)
 	}
-	log.Debug("Loaded AWS config: %+v", config)
+	log.Debugf("Loaded AWS config: %+v", config)
 	client := aws_codebuild.NewFromConfig(config)
 	if client == nil {
 		return Client{}, errors.New("codebuild client is nil")
@@ -166,9 +166,9 @@ func (c Client) GetBuildWithOptions(ctx context.Context, buildID BuildID, opt Ge
 	}
 	start := time.Now()
 	for {
-		log.Debug("BatchGetBuilds(%+v)", getBuildsInput)
+		log.Debugf("BatchGetBuilds(%+v)", getBuildsInput)
 		result, e := c.client.BatchGetBuilds(ctx, &getBuildsInput)
-		log.Debug("BatchGetBuilds result: %+v, %v", result, e)
+		log.Debugf("BatchGetBuilds result: %+v, %v", result, e)
 		if e != nil {
 			return Build{}, fmt.Errorf("failed to get build status: %w", e)
 		}
@@ -177,7 +177,7 @@ func (c Client) GetBuildWithOptions(ctx context.Context, buildID BuildID, opt Ge
 			return Build{}, e
 		}
 		if opt.WaitForCompletion && !result.Builds[0].BuildComplete {
-			log.Debug("waiting %s before attempting to fetch build info", opt.WaitSleepInterval)
+			log.Debugf("waiting %s before attempting to fetch build info", opt.WaitSleepInterval)
 			time.Sleep(opt.WaitSleepInterval)
 			if opt.ProgressOutput != nil {
 				fmt.Fprintf(opt.ProgressOutput, "Waiting for build for %v...\r", time.Since(start).Truncate(time.Second))
@@ -282,9 +282,9 @@ func (c Client) StartBuildWithOptions(ctx context.Context, project string, opt S
 		input.TimeoutInMinutesOverride = &timeout
 	}
 
-	log.Debug("Calling StartBuild with argument %+v", input)
+	log.Debugf("Calling StartBuild with argument %+v", input)
 	result, err := c.client.StartBuild(ctx, input)
-	log.Debug("StarBuild result: %v, %v", result, err)
+	log.Debugf("StarBuild result: %v, %v", result, err)
 	if err != nil {
 		return Build{}, fmt.Errorf("failed to start build for %s: %w", project, err)
 	}
