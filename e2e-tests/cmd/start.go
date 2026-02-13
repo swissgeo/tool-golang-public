@@ -28,7 +28,7 @@ type StartCmdFlags struct {
 	DoDataTest   bool
 	ShowProgress bool
 	Interval     int
-	Organization string
+	Organization organization.Organization
 }
 
 func boolToStr(b bool) string {
@@ -97,12 +97,12 @@ var startCmd = &cobra.Command{
 		if role == "" && profile == "" {
 			// Based on organization we need to set different AWS profile when no role is used
 			switch flags.Organization {
-			case string(organization.GEOADMIN):
+			case organization.GEOADMIN:
 				e = cmd.Flags().Set("profile", "swisstopo-bgdi-builder")
 				if e != nil {
 					return e
 				}
-			case string(organization.SWISSGEO):
+			case organization.SWISSGEO:
 				e = cmd.Flags().Set("profile", "swisstopo-swissgeo-builder")
 				if e != nil {
 					return e
@@ -158,7 +158,7 @@ func init() {
 
 	// Here you will define your flags and configuration settings.
 	startCmd.Flags().StringP("staging", "s", "dev", "Staging environment to use. Default is dev")
-	startCmd.Flags().String("revision", "master", "Revision of the tests to run. Default is master")
+	startCmd.Flags().String("revision", "", "Revision of the tests to run. Default is master or main depending on the org")
 	startCmd.Flags().Bool("data-tests", false, "Do also data integration tests (tests take much longer !)")
 	startCmd.Flags().StringArrayP("tests", "t", []string{}, "Test to run. Default is all tests")
 	startCmd.Flags().String(
@@ -209,8 +209,16 @@ func printStart(staging string, tests []string) {
 func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
 	var flags StartCmdFlags
 	flags.Staging = cmd.Flag("staging").Value.String()
+	flags.Organization = organization.Organization(cmd.Flag("org").Value.String())
 	flags.Revision = cmd.Flag("revision").Value.String()
-	flags.Organization = cmd.Flag("org").Value.String()
+	if flags.Revision == "" {
+		switch flags.Organization {
+		case organization.GEOADMIN:
+			flags.Revision = "master"
+		case organization.SWISSGEO:
+			flags.Revision = "main"
+		}
+	}
 	doDataTest, err := cmd.Flags().GetBool("data-tests")
 	if err != nil {
 		return StartCmdFlags{}, err
