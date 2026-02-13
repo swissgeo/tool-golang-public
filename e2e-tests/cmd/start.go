@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -230,11 +231,17 @@ func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
 		return StartCmdFlags{}, err
 	}
 
-	// Append the "tests." prefix to all tests
+	// Append the "tests" prefix to all tests
 	tests = func() []string {
 		out := make([]string, len(tests))
 		for i, t := range tests {
-			out[i] = "tests." + t
+			if flags.Organization == organization.GEOADMIN {
+				// Geoadmin uses python module path dot notation
+				out[i] = "tests." + t
+			} else {
+				// swissgeo uses file path notation
+				out[i] = filepath.Join("tests", t)
+			}
 		}
 		return out
 	}()
