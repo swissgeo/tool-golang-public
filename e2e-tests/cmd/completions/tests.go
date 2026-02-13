@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -14,6 +15,42 @@ import (
 
 	"github.com/geoadmin/tool-golang-bgdi/e2e-tests/cmd/organization"
 )
+
+// Fetch file should be in the .git folder otherwise when updating the repository it gets
+// deleted. Another option would be to add it to the gitignore but would add a dependency
+// to the infra-e2e-tests repositories.
+var lastFetchFile = filepath.Join(".git", ".last_fetch")
+
+//-----------------------------------------------------------------------------
+
+func setLastFetchTime(repoPath string) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	return os.WriteFile(filepath.Join(repoPath, lastFetchFile), []byte(now), 0600)
+}
+
+//-----------------------------------------------------------------------------
+
+func shouldFetch(repoPath string) (bool, error) {
+	// In order to improve tab completion performance, we check the last time
+	// a fetch and redo a fetch only after 24 hour.
+	// This improve the tab completion of ~1s, fetching is taking most of the
+	// time, so now only the first tab completion of the day is taking time.
+	data, err := os.ReadFile(filepath.Join(repoPath, lastFetchFile))
+	if err != nil {
+		// If file does not exist → fetch
+		if os.IsNotExist(err) {
+			return true, nil
+		}
+		return false, err
+	}
+
+	lastFetch, err := time.Parse(time.RFC3339, string(data))
+	if err != nil {
+		return true, err
+	}
+
+	return time.Since(lastFetch) > 24*time.Hour, nil
+}
 
 //-----------------------------------------------------------------------------
 
@@ -134,16 +171,28 @@ func getE2ERepo(org string) (string, error) {
 		}
 	}
 
-	// Update the repo
-	err = repo.Fetch(&git.FetchOptions{
-		Auth:       auth,
-		Depth:      1,
-		Force:      true,
-		Prune:      true,
-		RemoteName: "origin",
-	})
-	if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
-		return "", fmt.Errorf("failed to fetch repo: %w", err)
+	// Check if we need to fetch
+	fetchNeeded, err := shouldFetch(repoPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to check last fetch time: %w", err)
+	}
+
+	if fetchNeeded {
+		// Update the repo
+		err = repo.Fetch(&git.FetchOptions{
+			Auth:       auth,
+			Depth:      1,
+			Force:      true,
+			Prune:      true,
+			RemoteName: "origin",
+		})
+		if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
+			return "", fmt.Errorf("failed to fetch repo: %w", err)
+		}
+		err = setLastFetchTime(repoPath)
+		if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
+			return "", fmt.Errorf("failed to save last fetch time: %w", err)
+		}
 	}
 
 	// Get origin/master|main reference
