@@ -19,10 +19,8 @@ import (
 //-----------------------------------------------------------------------------
 
 type GetCmdFlags struct {
-	TestID       string
-	Detailed     bool
-	ShowProgress bool
-	Interval     int
+	Common CommonCmdFlags
+	TestID string
 }
 
 //-----------------------------------------------------------------------------
@@ -54,12 +52,12 @@ Note that if the tests run is on-going, the command waits until its is finished.
 		}
 		getOpt := codebuild.GetOptions{
 			WaitForCompletion: true,
-			WaitSleepInterval: time.Duration(flags.Interval) * time.Second,
+			WaitSleepInterval: time.Duration(flags.Common.Interval) * time.Second,
 			ProgressOutput:    os.Stdout,
 			FetchReport:       true,
 			TestCases:         []codebuild.TestStatus{codebuild.TestStatusFailed, codebuild.TestStatusError},
 		}
-		if !flags.ShowProgress {
+		if !flags.Common.ShowProgress {
 			getOpt.ProgressOutput = nil
 		}
 		build, e := codebuild.ParseBuildID(flags.TestID)
@@ -70,7 +68,7 @@ Note that if the tests run is on-going, the command waits until its is finished.
 		if e != nil {
 			return fmt.Errorf("failed to get tests run %s: %w", flags.TestID, e)
 		}
-		e = printTestResult(r, flags.Detailed)
+		e = printTestResult(r, flags.Common.Detailed)
 		if e != nil {
 			return e
 		}
@@ -89,29 +87,18 @@ Note that if the tests run is on-going, the command waits until its is finished.
 
 func getCmdGetFlags(cmd *cobra.Command) (GetCmdFlags, error) {
 	var flags GetCmdFlags
+	var e error
+
+	flags.Common, e = getCmdCommonFlags(cmd)
+	if e != nil {
+		return GetCmdFlags{}, e
+	}
+
 	id, e := cmd.Flags().GetString("test-id")
 	if e != nil {
 		return GetCmdFlags{}, e
 	}
 	flags.TestID = id
-
-	np, e := cmd.Flags().GetBool("no-progress")
-	if e != nil {
-		return GetCmdFlags{}, e
-	}
-	flags.ShowProgress = !np
-
-	interval, e := cmd.Flags().GetInt("interval")
-	if e != nil {
-		return GetCmdFlags{}, e
-	}
-	flags.Interval = interval
-
-	detailed, e := cmd.Flags().GetBool("detailed")
-	if e != nil {
-		return GetCmdFlags{}, e
-	}
-	flags.Detailed = detailed
 
 	return flags, nil
 }

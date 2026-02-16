@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/geoadmin/tool-golang-bgdi/e2e-tests/cmd/organization"
 	"github.com/geoadmin/tool-golang-bgdi/lib/fmtc"
 	"github.com/geoadmin/tool-golang-bgdi/lib/version"
 	"github.com/spf13/cobra"
@@ -60,6 +61,11 @@ func init() {
 	rootCmd.PersistentFlags().Bool("no-progress", false, "For long running command don't display progress indicator")
 	rootCmd.PersistentFlags().Int("interval", 1, "Interval in seconds to check the E2E tests status")
 	rootCmd.PersistentFlags().BoolP("detailed", "d", false, "Show detailed test result")
+	rootCmd.PersistentFlags().String(
+		"org",
+		string(organization.GEOADMIN),
+		"Organization of the tests to start/get (geoadmin or swissgeo). Default is geoadmin",
+	)
 }
 
 //-----------------------------------------------------------------------------
