@@ -133,6 +133,7 @@ var startCmd = &cobra.Command{
 			WaitSleepInterval: time.Duration(flags.Interval) * time.Second,
 			ProgressOutput:    os.Stdout,
 			FetchReport:       true,
+			TestCases:         []codebuild.TestStatus{codebuild.TestStatusFailed, codebuild.TestStatusError},
 		}
 		if !flags.ShowProgress {
 			getOpt.ProgressOutput = nil
