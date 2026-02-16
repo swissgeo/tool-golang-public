@@ -9,6 +9,7 @@ import (
 	codebuild_types "github.com/aws/aws-sdk-go-v2/service/codebuild/types"
 	"github.com/geoadmin/tool-golang-bgdi/lib/aws/arn"
 	"github.com/geoadmin/tool-golang-bgdi/lib/fmtc"
+	"github.com/geoadmin/tool-golang-bgdi/lib/log"
 )
 
 type BuildID string
@@ -89,6 +90,7 @@ func (b Build) String(colorise bool, detailed bool) string {
 	var s strings.Builder
 	s.WriteString(fmt.Sprintf("Build %s\n%s\n%s\n", b.Arn.String(), b.Link(), b.ShortString(colorise)))
 	for _, r := range b.reports {
+		log.Debugf("report: %s", r.String(false))
 		if r.FaultsCount() > 0 {
 			color := fmtc.NoColor
 			if colorise {

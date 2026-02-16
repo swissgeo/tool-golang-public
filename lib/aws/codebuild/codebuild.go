@@ -168,7 +168,7 @@ func (c Client) GetBuildWithOptions(ctx context.Context, buildID BuildID, opt Ge
 	for {
 		log.Debugf("BatchGetBuilds(%+v)", getBuildsInput)
 		result, e := c.client.BatchGetBuilds(ctx, &getBuildsInput)
-		log.Debugf("BatchGetBuilds result: %+v, %v", result, e)
+		log.Debugf("BatchGetBuilds result: %+v", result)
 		if e != nil {
 			return Build{}, fmt.Errorf("failed to get build status: %w", e)
 		}
@@ -185,10 +185,12 @@ func (c Client) GetBuildWithOptions(ctx context.Context, buildID BuildID, opt Ge
 			continue
 		}
 		b, e := newBuild(result.Builds[0])
+		log.Debugf("build=%+v", b)
 		if e != nil {
 			return Build{}, e
 		}
 		if opt.FetchReport {
+			log.Debugf("fetching report...")
 			e = c.fetchReport(ctx, &b, opt.TestCases)
 			if e != nil {
 				e = errors.Join(e, ErrFetchReportFailed)
@@ -225,6 +227,7 @@ func (c Client) fetchReport(ctx context.Context, b *Build, testCases []TestStatu
 			r.TestCases = make(map[TestStatus][]codebuild_types.TestCase)
 		}
 		for _, status := range testCases {
+			log.Debugf("fetch test case...")
 			e = c.fetchTestCases(ctx, status, &r)
 			if e != nil {
 				return fmt.Errorf("failed to fetch test cases: %w", e)
