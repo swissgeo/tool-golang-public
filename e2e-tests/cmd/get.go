@@ -122,7 +122,6 @@ func init() {
 	rootCmd.AddCommand(getCmd)
 
 	getCmd.Flags().StringP("test-id", "t", "", "Test ID")
-	getCmd.Flags().BoolP("detailed", "d", false, "Show detailed test result")
 	_ = getCmd.MarkFlagRequired("test-id")
 }
 

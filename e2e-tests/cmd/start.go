@@ -176,7 +176,6 @@ func init() {
 		string(organization.GEOADMIN),
 		"Organization of the tests to run (geoadmin or swissgeo). Default is geoadmin",
 	)
-	getCmd.Flags().BoolP("detailed", "d", false, "Show detailed test result")
 
 	// Completions functions
 	_ = startCmd.RegisterFlagCompletionFunc(
