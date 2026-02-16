@@ -31,6 +31,7 @@ type StartCmdFlags struct {
 	ShowProgress bool
 	Interval     int
 	Organization organization.Organization
+	Detailed     bool
 }
 
 func boolToStr(b bool) string {
@@ -144,7 +145,7 @@ var startCmd = &cobra.Command{
 			return e
 		}
 
-		e = printTestResult(re, false)
+		e = printTestResult(re, flags.Detailed)
 		if e != nil {
 			return e
 		}
@@ -175,6 +176,7 @@ func init() {
 		string(organization.GEOADMIN),
 		"Organization of the tests to run (geoadmin or swissgeo). Default is geoadmin",
 	)
+	getCmd.Flags().BoolP("detailed", "d", false, "Show detailed test result")
 
 	// Completions functions
 	_ = startCmd.RegisterFlagCompletionFunc(
@@ -290,6 +292,12 @@ func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
 		return StartCmdFlags{}, err
 	}
 	flags.Interval = interval
+
+	detailed, e := cmd.Flags().GetBool("detailed")
+	if e != nil {
+		return StartCmdFlags{}, e
+	}
+	flags.Detailed = detailed
 
 	return flags, nil
 }
