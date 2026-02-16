@@ -127,7 +127,7 @@ var startCmd = &cobra.Command{
 		if e != nil {
 			return e
 		}
-		fmt.Printf("E2E tests started with ID: %v\n%s\n", build.ID, fmtc.Colorise(fmtc.Yellow, build.Link()))
+		fmt.Printf(" ID: %v\n%s\n", build.ID, fmtc.Colorise(fmtc.Yellow, build.Link()))
 
 		getOpt := codebuild.GetOptions{
 			WaitForCompletion: true,
@@ -221,14 +221,17 @@ func init() {
 //-----------------------------------------------------------------------------
 
 func printStart(staging string, flags StartCmdFlags) {
-	fmt.Printf("Starting E2E tests on %s staging", staging)
-	if len(flags.Tests) > 0 {
-		fmt.Printf(" with tests: %s\n", strings.Join(flags.Tests, ", "))
-	} else {
-		fmt.Printf(" with all tests\n")
-	}
 	if len(flags.Markers) > 0 && flags.Organization != organization.SWISSGEO {
 		fmtc.Printf(fmtc.Yellow, "WARNING: flag --markers has no effect with --org %s\n", flags.Organization)
+	}
+	fmt.Printf("Starting E2E tests on %s staging:\n", staging)
+	if len(flags.Tests) > 0 {
+		fmt.Printf(" tests: %s\n", strings.Join(flags.Tests, ", "))
+	} else {
+		fmt.Printf(" tests: all\n")
+	}
+	if len(flags.Markers) > 0 {
+		fmt.Printf(" markers: %s\n", strings.Join(flags.Markers, ", "))
 	}
 }
 
