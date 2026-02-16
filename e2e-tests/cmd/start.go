@@ -25,6 +25,7 @@ import (
 type StartCmdFlags struct {
 	Staging      string
 	Tests        []string
+	Markers      []string
 	Revision     string
 	DoDataTest   bool
 	ShowProgress bool
@@ -55,7 +56,7 @@ var startCmd = &cobra.Command{
 		if e != nil {
 			return e
 		}
-		printStart(flags.Staging, flags.Tests)
+		printStart(flags.Staging, flags)
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop() // Ensure cleanup
@@ -77,6 +78,11 @@ var startCmd = &cobra.Command{
 				{
 					Name:  str.Ptr("TEST_NAMES"),
 					Value: str.Ptr(strings.Join(flags.Tests, ",")),
+					Type:  codebuild_types.EnvironmentVariableTypePlaintext,
+				},
+				{
+					Name:  str.Ptr("TEST_MARKERS"),
+					Value: str.Ptr(strings.Join(flags.Markers, ",")),
 					Type:  codebuild_types.EnvironmentVariableTypePlaintext,
 				},
 			},
@@ -162,6 +168,7 @@ func init() {
 	startCmd.Flags().String("revision", "", "Revision of the tests to run. Default is master or main depending on the org")
 	startCmd.Flags().Bool("data-tests", false, "Do also data integration tests (tests take much longer !)")
 	startCmd.Flags().StringArrayP("tests", "t", []string{}, "Test to run. Default is all tests")
+	startCmd.Flags().StringArrayP("markers", "m", []string{}, "Test to run selected by markers. Default is all tests")
 	startCmd.Flags().String(
 		"org",
 		string(organization.GEOADMIN),
@@ -183,6 +190,20 @@ func init() {
 	_ = startCmd.RegisterFlagCompletionFunc("revision", cobra.NoFileCompletions)
 	_ = startCmd.RegisterFlagCompletionFunc("tests", completions.CompleteTests)
 	_ = startCmd.RegisterFlagCompletionFunc(
+		"markers",
+		cobra.FixedCompletions(
+			[]cobra.Completion{
+				cobra.Completion("api"),
+				cobra.Completion("auth"),
+				cobra.Completion("data"),
+				cobra.Completion("frontend"),
+				cobra.Completion("mutating"),
+				cobra.Completion("slow"),
+			},
+			cobra.ShellCompDirectiveNoFileComp,
+		),
+	)
+	_ = startCmd.RegisterFlagCompletionFunc(
 		"org",
 		cobra.FixedCompletions(
 			[]cobra.Completion{
@@ -196,12 +217,15 @@ func init() {
 
 //-----------------------------------------------------------------------------
 
-func printStart(staging string, tests []string) {
+func printStart(staging string, flags StartCmdFlags) {
 	fmt.Printf("Starting E2E tests on %s staging", staging)
-	if len(tests) > 0 {
-		fmt.Printf(" with tests: %s\n", strings.Join(tests, ", "))
+	if len(flags.Tests) > 0 {
+		fmt.Printf(" with tests: %s\n", strings.Join(flags.Tests, ", "))
 	} else {
 		fmt.Printf(" with all tests\n")
+	}
+	if len(flags.Markers) > 0 && flags.Organization != organization.SWISSGEO {
+		fmtc.Printf(fmtc.Yellow, "WARNING: flag --markers has no effect with --org %s\n", flags.Organization)
 	}
 }
 
@@ -246,6 +270,12 @@ func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
 		return out
 	}()
 	flags.Tests = tests
+
+	markers, err := cmd.Flags().GetStringArray("markers")
+	if err != nil {
+		return StartCmdFlags{}, err
+	}
+	flags.Markers = markers
 
 	np, err := cmd.Flags().GetBool("no-progress")
 	if err != nil {
