@@ -59,6 +59,7 @@ func init() {
 	rootCmd.PersistentFlags().Bool("no-color", false, "Do not use color in output")
 	rootCmd.PersistentFlags().Bool("no-progress", false, "For long running command don't display progress indicator")
 	rootCmd.PersistentFlags().Int("interval", 1, "Interval in seconds to check the E2E tests status")
+	rootCmd.PersistentFlags().BoolP("detailed", "d", false, "Show detailed test result")
 }
 
 //-----------------------------------------------------------------------------
