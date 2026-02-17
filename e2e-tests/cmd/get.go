@@ -19,10 +19,8 @@ import (
 //-----------------------------------------------------------------------------
 
 type GetCmdFlags struct {
-	TestID       string
-	Detailed     bool
-	ShowProgress bool
-	Interval     int
+	CommonCmdFlags
+	TestID string
 }
 
 //-----------------------------------------------------------------------------
@@ -40,7 +38,8 @@ Note that if the tests run is on-going, the command waits until its is finished.
 			return e
 		}
 
-		flags, e := getCmdGetFlags(cmd)
+		flags := GetCmdFlags{}
+		e = flags.parse(cmd)
 		if e != nil {
 			return e
 		}
@@ -87,33 +86,21 @@ Note that if the tests run is on-going, the command waits until its is finished.
 
 //-----------------------------------------------------------------------------
 
-func getCmdGetFlags(cmd *cobra.Command) (GetCmdFlags, error) {
-	var flags GetCmdFlags
+func (flags *GetCmdFlags) parse(cmd *cobra.Command) error {
+	var e error
+
+	e = flags.CommonCmdFlags.parse(cmd)
+	if e != nil {
+		return e
+	}
+
 	id, e := cmd.Flags().GetString("test-id")
 	if e != nil {
-		return GetCmdFlags{}, e
+		return e
 	}
 	flags.TestID = id
 
-	np, e := cmd.Flags().GetBool("no-progress")
-	if e != nil {
-		return GetCmdFlags{}, e
-	}
-	flags.ShowProgress = !np
-
-	interval, e := cmd.Flags().GetInt("interval")
-	if e != nil {
-		return GetCmdFlags{}, e
-	}
-	flags.Interval = interval
-
-	detailed, e := cmd.Flags().GetBool("detailed")
-	if e != nil {
-		return GetCmdFlags{}, e
-	}
-	flags.Detailed = detailed
-
-	return flags, nil
+	return nil
 }
 
 //-----------------------------------------------------------------------------
@@ -121,8 +108,10 @@ func getCmdGetFlags(cmd *cobra.Command) (GetCmdFlags, error) {
 func init() {
 	rootCmd.AddCommand(getCmd)
 
-	getCmd.Flags().StringP("test-id", "t", "", "Test ID")
+	getCmd.Flags().StringP("test-id", "t", "", "REQUIRED: Test ID")
 	_ = getCmd.MarkFlagRequired("test-id")
+
+	_ = getCmd.RegisterFlagCompletionFunc("test-id", cobra.NoFileCompletions)
 }
 
 //-----------------------------------------------------------------------------

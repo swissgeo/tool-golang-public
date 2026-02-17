@@ -23,15 +23,12 @@ import (
 //-----------------------------------------------------------------------------
 
 type StartCmdFlags struct {
-	Staging      string
-	Tests        []string
-	Markers      []string
-	Revision     string
-	DoDataTest   bool
-	ShowProgress bool
-	Interval     int
-	Organization organization.Organization
-	Detailed     bool
+	CommonCmdFlags
+	Staging    string
+	Tests      []string
+	Markers    []string
+	Revision   string
+	DoDataTest bool
 }
 
 func boolToStr(b bool) string {
@@ -53,7 +50,8 @@ var startCmd = &cobra.Command{
 		if e != nil {
 			return e
 		}
-		flags, e := getCmdStartFlags(cmd)
+		flags := StartCmdFlags{}
+		e = flags.parse(cmd)
 		if e != nil {
 			return e
 		}
@@ -92,32 +90,6 @@ var startCmd = &cobra.Command{
 			startOpt.Timeout = 60 * time.Minute //nolint:mnd
 		}
 
-		// Set the default AWS config profile when no --role and --profile options are given
-		// the default profile is set based on --org option
-		role, e := cmd.Flags().GetString("role")
-		if e != nil {
-			return e
-		}
-		profile, e := cmd.Flags().GetString("profile")
-		if e != nil {
-			return e
-		}
-		if role == "" && profile == "" {
-			// Based on organization we need to set different AWS profile when no role is used
-			switch flags.Organization {
-			case organization.GEOADMIN:
-				e = cmd.Flags().Set("profile", "swisstopo-bgdi-builder")
-				if e != nil {
-					return e
-				}
-			case organization.SWISSGEO:
-				e = cmd.Flags().Set("profile", "swisstopo-swissgeo-builder")
-				if e != nil {
-					return e
-				}
-			}
-		}
-
 		client, e := codebuild.NewClient(ctx, *cmd.Flags())
 		if e != nil {
 			return e
@@ -127,7 +99,7 @@ var startCmd = &cobra.Command{
 		if e != nil {
 			return e
 		}
-		fmt.Printf(" ID: %v\n%s\n", build.ID, fmtc.Colorise(fmtc.Yellow, build.Link()))
+		fmt.Printf("  ID: %v\n  %s\n", build.ID, fmtc.Colorise(fmtc.Yellow, build.Link()))
 
 		getOpt := codebuild.GetOptions{
 			WaitForCompletion: true,
@@ -171,11 +143,6 @@ func init() {
 	startCmd.Flags().Bool("data-tests", false, "Do also data integration tests (tests take much longer !)")
 	startCmd.Flags().StringArrayP("tests", "t", []string{}, "Test to run. Default is all tests")
 	startCmd.Flags().StringArrayP("markers", "m", []string{}, "Test to run selected by markers. Default is all tests")
-	startCmd.Flags().String(
-		"org",
-		string(organization.GEOADMIN),
-		"Organization of the tests to run (geoadmin or swissgeo). Default is geoadmin",
-	)
 
 	// Completions functions
 	_ = startCmd.RegisterFlagCompletionFunc(
@@ -205,16 +172,6 @@ func init() {
 			cobra.ShellCompDirectiveNoFileComp,
 		),
 	)
-	_ = startCmd.RegisterFlagCompletionFunc(
-		"org",
-		cobra.FixedCompletions(
-			[]cobra.Completion{
-				cobra.Completion(organization.GEOADMIN),
-				cobra.Completion(organization.SWISSGEO),
-			},
-			cobra.ShellCompDirectiveNoFileComp,
-		),
-	)
 }
 
 //-----------------------------------------------------------------------------
@@ -225,21 +182,26 @@ func printStart(staging string, flags StartCmdFlags) {
 	}
 	fmt.Printf("Starting E2E tests on %s staging:\n", staging)
 	if len(flags.Tests) > 0 {
-		fmt.Printf(" tests: %s\n", strings.Join(flags.Tests, ", "))
+		fmt.Printf("  tests: %s\n", strings.Join(flags.Tests, ", "))
 	} else {
-		fmt.Printf(" tests: all\n")
+		fmt.Printf("  tests: all\n")
 	}
 	if len(flags.Markers) > 0 {
-		fmt.Printf(" markers: %s\n", strings.Join(flags.Markers, ", "))
+		fmt.Printf("  markers: %s\n", strings.Join(flags.Markers, ", "))
 	}
 }
 
 // -----------------------------------------------------------------------------
 // Get start command flags
-func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
-	var flags StartCmdFlags
+func (flags *StartCmdFlags) parse(cmd *cobra.Command) error {
+	var err error
+
+	err = flags.CommonCmdFlags.parse(cmd)
+	if err != nil {
+		return err
+	}
+
 	flags.Staging = cmd.Flag("staging").Value.String()
-	flags.Organization = organization.Organization(cmd.Flag("org").Value.String())
 	flags.Revision = cmd.Flag("revision").Value.String()
 	if flags.Revision == "" {
 		switch flags.Organization {
@@ -251,13 +213,13 @@ func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
 	}
 	doDataTest, err := cmd.Flags().GetBool("data-tests")
 	if err != nil {
-		return StartCmdFlags{}, err
+		return err
 	}
 	flags.DoDataTest = doDataTest
 
 	tests, err := cmd.Flags().GetStringArray("tests")
 	if err != nil {
-		return StartCmdFlags{}, err
+		return err
 	}
 
 	// Append the "tests" prefix to all tests
@@ -278,28 +240,9 @@ func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
 
 	markers, err := cmd.Flags().GetStringArray("markers")
 	if err != nil {
-		return StartCmdFlags{}, err
+		return err
 	}
 	flags.Markers = markers
 
-	np, err := cmd.Flags().GetBool("no-progress")
-	if err != nil {
-		return StartCmdFlags{}, err
-	}
-	showProgress := !np
-	flags.ShowProgress = showProgress
-
-	interval, err := cmd.Flags().GetInt("interval")
-	if err != nil {
-		return StartCmdFlags{}, err
-	}
-	flags.Interval = interval
-
-	detailed, e := cmd.Flags().GetBool("detailed")
-	if e != nil {
-		return StartCmdFlags{}, e
-	}
-	flags.Detailed = detailed
-
-	return flags, nil
+	return nil
 }
