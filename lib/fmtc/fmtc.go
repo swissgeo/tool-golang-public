@@ -42,3 +42,10 @@ func Colorise(color Color, s string) string {
 }
 
 //-----------------------------------------------------------------------------
+
+func Sprintf(color Color, format string, a ...any) string {
+	if color == NoColor {
+		return fmt.Sprintf(format, a...)
+	}
+	return fmt.Sprintf(string(color)+format+string(Reset), a...)
+}

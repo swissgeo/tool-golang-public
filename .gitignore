@@ -2,3 +2,6 @@ k8s-validate    # ignore built artifact
 !k8s-validate/  # but don't ignore folder
 e2e-tests
 !e2e-tests/
+aws-ssm
+!aws-ssm/
+bin/
