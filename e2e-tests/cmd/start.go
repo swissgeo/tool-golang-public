@@ -172,16 +172,6 @@ func init() {
 			cobra.ShellCompDirectiveNoFileComp,
 		),
 	)
-	_ = startCmd.RegisterFlagCompletionFunc(
-		"org",
-		cobra.FixedCompletions(
-			[]cobra.Completion{
-				cobra.Completion(organization.GEOADMIN),
-				cobra.Completion(organization.SWISSGEO),
-			},
-			cobra.ShellCompDirectiveNoFileComp,
-		),
-	)
 }
 
 //-----------------------------------------------------------------------------

@@ -66,6 +66,17 @@ func init() {
 		string(organization.GEOADMIN),
 		"Organization of the tests to start/get (geoadmin or swissgeo). Default is geoadmin",
 	)
+
+	_ = rootCmd.RegisterFlagCompletionFunc(
+		"org",
+		cobra.FixedCompletions(
+			[]cobra.Completion{
+				cobra.Completion(organization.GEOADMIN),
+				cobra.Completion(organization.SWISSGEO),
+			},
+			cobra.ShellCompDirectiveNoFileComp,
+		),
+	)
 }
 
 //-----------------------------------------------------------------------------

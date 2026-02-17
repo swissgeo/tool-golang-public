@@ -108,8 +108,10 @@ func (flags *GetCmdFlags) parse(cmd *cobra.Command) error {
 func init() {
 	rootCmd.AddCommand(getCmd)
 
-	getCmd.Flags().StringP("test-id", "t", "", "Test ID")
+	getCmd.Flags().StringP("test-id", "t", "", "REQUIRED: Test ID")
 	_ = getCmd.MarkFlagRequired("test-id")
+
+	_ = getCmd.RegisterFlagCompletionFunc("test-id", cobra.NoFileCompletions)
 }
 
 //-----------------------------------------------------------------------------
