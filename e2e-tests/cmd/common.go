@@ -58,27 +58,25 @@ func projectName(staging string) string {
 
 //-----------------------------------------------------------------------------
 
-func getCmdCommonFlags(cmd *cobra.Command) (CommonCmdFlags, error) {
-	var flags CommonCmdFlags
-
+func (flags *CommonCmdFlags) parse(cmd *cobra.Command) error {
 	flags.Organization = organization.Organization(cmd.Flag("org").Value.String())
 
 	np, e := cmd.Flags().GetBool("no-progress")
 	if e != nil {
-		return CommonCmdFlags{}, e
+		return e
 	}
 	showProgress := !np
 	flags.ShowProgress = showProgress
 
 	interval, e := cmd.Flags().GetInt("interval")
 	if e != nil {
-		return CommonCmdFlags{}, e
+		return e
 	}
 	flags.Interval = interval
 
 	detailed, e := cmd.Flags().GetBool("detailed")
 	if e != nil {
-		return CommonCmdFlags{}, e
+		return e
 	}
 	flags.Detailed = detailed
 
@@ -86,11 +84,11 @@ func getCmdCommonFlags(cmd *cobra.Command) (CommonCmdFlags, error) {
 	// the default profile is set based on --org option
 	role, e := cmd.Flags().GetString("role")
 	if e != nil {
-		return CommonCmdFlags{}, e
+		return e
 	}
 	profile, e := cmd.Flags().GetString("profile")
 	if e != nil {
-		return CommonCmdFlags{}, e
+		return e
 	}
 	if role == "" && profile == "" {
 		// Based on organization we need to set different AWS profile when no role is used
@@ -98,15 +96,15 @@ func getCmdCommonFlags(cmd *cobra.Command) (CommonCmdFlags, error) {
 		case organization.GEOADMIN:
 			e = cmd.Flags().Set("profile", "swisstopo-bgdi-builder")
 			if e != nil {
-				return CommonCmdFlags{}, e
+				return e
 			}
 		case organization.SWISSGEO:
 			e = cmd.Flags().Set("profile", "swisstopo-swissgeo-builder")
 			if e != nil {
-				return CommonCmdFlags{}, e
+				return e
 			}
 		}
 	}
 
-	return flags, nil
+	return nil
 }

@@ -23,7 +23,7 @@ import (
 //-----------------------------------------------------------------------------
 
 type StartCmdFlags struct {
-	Common     CommonCmdFlags
+	CommonCmdFlags
 	Staging    string
 	Tests      []string
 	Markers    []string
@@ -50,7 +50,8 @@ var startCmd = &cobra.Command{
 		if e != nil {
 			return e
 		}
-		flags, e := getCmdStartFlags(cmd)
+		flags := StartCmdFlags{}
+		e = flags.parse(cmd)
 		if e != nil {
 			return e
 		}
@@ -102,12 +103,12 @@ var startCmd = &cobra.Command{
 
 		getOpt := codebuild.GetOptions{
 			WaitForCompletion: true,
-			WaitSleepInterval: time.Duration(flags.Common.Interval) * time.Second,
+			WaitSleepInterval: time.Duration(flags.Interval) * time.Second,
 			ProgressOutput:    os.Stdout,
 			FetchReport:       true,
 			TestCases:         []codebuild.TestStatus{codebuild.TestStatusFailed, codebuild.TestStatusError},
 		}
-		if !flags.Common.ShowProgress {
+		if !flags.ShowProgress {
 			getOpt.ProgressOutput = nil
 		}
 		// Wait for the build to finish
@@ -116,7 +117,7 @@ var startCmd = &cobra.Command{
 			return e
 		}
 
-		e = printTestResult(re, flags.Common.Detailed)
+		e = printTestResult(re, flags.Detailed)
 		if e != nil {
 			return e
 		}
@@ -186,8 +187,8 @@ func init() {
 //-----------------------------------------------------------------------------
 
 func printStart(staging string, flags StartCmdFlags) {
-	if len(flags.Markers) > 0 && flags.Common.Organization != organization.SWISSGEO {
-		fmtc.Printf(fmtc.Yellow, "WARNING: flag --markers has no effect with --org %s\n", flags.Common.Organization)
+	if len(flags.Markers) > 0 && flags.Organization != organization.SWISSGEO {
+		fmtc.Printf(fmtc.Yellow, "WARNING: flag --markers has no effect with --org %s\n", flags.Organization)
 	}
 	fmt.Printf("Starting E2E tests on %s staging:\n", staging)
 	if len(flags.Tests) > 0 {
@@ -202,19 +203,18 @@ func printStart(staging string, flags StartCmdFlags) {
 
 // -----------------------------------------------------------------------------
 // Get start command flags
-func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
-	var flags StartCmdFlags
+func (flags *StartCmdFlags) parse(cmd *cobra.Command) error {
 	var err error
 
-	flags.Common, err = getCmdCommonFlags(cmd)
+	err = flags.CommonCmdFlags.parse(cmd)
 	if err != nil {
-		return StartCmdFlags{}, err
+		return err
 	}
 
 	flags.Staging = cmd.Flag("staging").Value.String()
 	flags.Revision = cmd.Flag("revision").Value.String()
 	if flags.Revision == "" {
-		switch flags.Common.Organization {
+		switch flags.Organization {
 		case organization.GEOADMIN:
 			flags.Revision = "master"
 		case organization.SWISSGEO:
@@ -223,20 +223,20 @@ func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
 	}
 	doDataTest, err := cmd.Flags().GetBool("data-tests")
 	if err != nil {
-		return StartCmdFlags{}, err
+		return err
 	}
 	flags.DoDataTest = doDataTest
 
 	tests, err := cmd.Flags().GetStringArray("tests")
 	if err != nil {
-		return StartCmdFlags{}, err
+		return err
 	}
 
 	// Append the "tests" prefix to all tests
 	tests = func() []string {
 		out := make([]string, len(tests))
 		for i, t := range tests {
-			if flags.Common.Organization == organization.GEOADMIN {
+			if flags.Organization == organization.GEOADMIN {
 				// Geoadmin uses python module path dot notation
 				out[i] = "tests." + t
 			} else {
@@ -250,9 +250,9 @@ func getCmdStartFlags(cmd *cobra.Command) (StartCmdFlags, error) {
 
 	markers, err := cmd.Flags().GetStringArray("markers")
 	if err != nil {
-		return StartCmdFlags{}, err
+		return err
 	}
 	flags.Markers = markers
 
-	return flags, nil
+	return nil
 }

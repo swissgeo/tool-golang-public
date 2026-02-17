@@ -19,7 +19,7 @@ import (
 //-----------------------------------------------------------------------------
 
 type GetCmdFlags struct {
-	Common CommonCmdFlags
+	CommonCmdFlags
 	TestID string
 }
 
@@ -38,7 +38,8 @@ Note that if the tests run is on-going, the command waits until its is finished.
 			return e
 		}
 
-		flags, e := getCmdGetFlags(cmd)
+		flags := GetCmdFlags{}
+		e = flags.parse(cmd)
 		if e != nil {
 			return e
 		}
@@ -52,12 +53,12 @@ Note that if the tests run is on-going, the command waits until its is finished.
 		}
 		getOpt := codebuild.GetOptions{
 			WaitForCompletion: true,
-			WaitSleepInterval: time.Duration(flags.Common.Interval) * time.Second,
+			WaitSleepInterval: time.Duration(flags.Interval) * time.Second,
 			ProgressOutput:    os.Stdout,
 			FetchReport:       true,
 			TestCases:         []codebuild.TestStatus{codebuild.TestStatusFailed, codebuild.TestStatusError},
 		}
-		if !flags.Common.ShowProgress {
+		if !flags.ShowProgress {
 			getOpt.ProgressOutput = nil
 		}
 		build, e := codebuild.ParseBuildID(flags.TestID)
@@ -68,7 +69,7 @@ Note that if the tests run is on-going, the command waits until its is finished.
 		if e != nil {
 			return fmt.Errorf("failed to get tests run %s: %w", flags.TestID, e)
 		}
-		e = printTestResult(r, flags.Common.Detailed)
+		e = printTestResult(r, flags.Detailed)
 		if e != nil {
 			return e
 		}
@@ -85,22 +86,21 @@ Note that if the tests run is on-going, the command waits until its is finished.
 
 //-----------------------------------------------------------------------------
 
-func getCmdGetFlags(cmd *cobra.Command) (GetCmdFlags, error) {
-	var flags GetCmdFlags
+func (flags *GetCmdFlags) parse(cmd *cobra.Command) error {
 	var e error
 
-	flags.Common, e = getCmdCommonFlags(cmd)
+	e = flags.CommonCmdFlags.parse(cmd)
 	if e != nil {
-		return GetCmdFlags{}, e
+		return e
 	}
 
 	id, e := cmd.Flags().GetString("test-id")
 	if e != nil {
-		return GetCmdFlags{}, e
+		return e
 	}
 	flags.TestID = id
 
-	return flags, nil
+	return nil
 }
 
 //-----------------------------------------------------------------------------
