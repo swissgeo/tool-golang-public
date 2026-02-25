@@ -88,7 +88,7 @@ func (b Build) Succeeded() bool {
 
 func (b Build) String(colorise bool, detailed bool) string {
 	var s strings.Builder
-	s.WriteString(fmt.Sprintf("Build %s\n%s\n%s\n", b.Arn.String(), b.Link(), b.ShortString(colorise)))
+	fmt.Fprintf(&s, "Build %s\n%s\n%s\n", b.Arn.String(), b.Link(), b.ShortString(colorise))
 	for _, r := range b.reports {
 		log.Debugf("report: %s", r.String(false))
 		if r.FaultsCount() > 0 {
@@ -96,7 +96,7 @@ func (b Build) String(colorise bool, detailed bool) string {
 			if colorise {
 				color = fmtc.Red
 			}
-			s.WriteString(fmt.Sprintf("\n%s", fmtc.Colorise(color, r.String(detailed))))
+			fmt.Fprintf(&s, "\n%s", fmtc.Colorise(color, r.String(detailed)))
 		}
 	}
 	return s.String()
