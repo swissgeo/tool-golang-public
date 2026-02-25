@@ -4,6 +4,8 @@ SHELL = /bin/bash
 
 CURRENT_DIR := $(shell pwd)
 
+BINS = $(shell find * -name main.go -printf 'bin/%h\n')
+
 # Docker metadata
 GOLANG_VERSION ?= `GOENV_GOMOD_VERSION_ENABLE=1 goenv local`
 GIT_HASH = `git rev-parse HEAD`
@@ -20,13 +22,27 @@ E2E_TESTS_DOCKER_IMG_LOCAL_TAG := $(DOCKER_REGISTRY)/tool-golang-bgdi/e2e-tests:
 # AWS variables
 AWS_DEFAULT_REGION = eu-central-1
 
+bin:
+	mkdir -p $@
+
+bin/%: % bin FORCE
+	go build -o $@ ./$<
+
+.PHONY:
+clean:
+	$(RM) -r bin/
+
+# Allows to .PHONY'se implicit rules without enumerating them all.
+# https://www.gnu.org/software/make/manual/html_node/Force-Targets.html
+FORCE:
 
 .PHONY: help
 help:
 	@echo "Usage: make <target>"
 	@echo
-	@echo "Possible targets:"
+	@echo "Some possible targets:"
 	@echo "- setup                  Install dependencies"
+	@echo "- all                    Build all the Go binaries: $(BINS)"
 	@echo -e " \033[1mFORMATING, LINTING AND TESTING TOOLS TARGETS\033[0m "
 	@echo "- format                 Format the go source code"
 	@echo "- lint                   Lint the go source code"
@@ -66,8 +82,7 @@ test:
 	go test ./... -v -count=1 # count=1 disables test caching
 
 .PHONY: all
-all:
-	go build ./...
+all: $(BINS)
 
 # Docker related functions.
 
