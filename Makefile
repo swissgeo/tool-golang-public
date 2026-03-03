@@ -19,7 +19,7 @@ AUTHOR = $(USER)
 DOCKER_REGISTRY = 974517877189.dkr.ecr.eu-central-1.amazonaws.com
 DOCKER_IMG_LOCAL_TAG := local-$(USER)-$(GIT_HASH_SHORT)
 # TODO(PB-2197): add codebuild once the corresponding ECR is ready
-DOCKERISED_BINS = codebuild e2e-tests
+DOCKERISED_BINS = e2e-tests
 DOCKERFILES := $(patsubst %,%/Dockerfile,$(DOCKERISED_BINS))
 
 # AWS variables
