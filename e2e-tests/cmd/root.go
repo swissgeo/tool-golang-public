@@ -33,7 +33,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version",
 	Run: func(_ *cobra.Command, _ []string) {
-		fmt.Println(version.GetGitVersion())
+		fmt.Println(version.GetVersion())
 	},
 }
 
