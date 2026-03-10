@@ -1,6 +1,6 @@
 module github.com/geoadmin/tool-golang-bgdi
 
-go 1.25.7
+go 1.25.8
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.5
