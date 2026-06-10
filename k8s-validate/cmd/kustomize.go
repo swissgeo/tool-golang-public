@@ -34,7 +34,7 @@ func readYAML(filename string) (*Manifest, error) {
 	return &m, nil
 }
 
-func findFolders() ([]string, error) {
+func FindKustomizeFolders() ([]string, error) {
 	// Find all directories containing kustomization.yaml
 	var folders []string
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
@@ -83,7 +83,7 @@ func validate(folder string) bool {
 }
 
 func ValidateKustomize(workers int, failFast bool) bool {
-	folders, err := findFolders()
+	folders, err := FindKustomizeFolders()
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
