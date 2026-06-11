@@ -28,6 +28,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestParseType(t *testing.T) {
+	const wrongValue = "wrong"
 	defaultArn := "arn:aws2:codebuild:mars-south-42:1337:report/report-group:report-id"
 	testCases := map[string]struct {
 		arn     string
@@ -47,19 +48,19 @@ func TestParseType(t *testing.T) {
 			subType: "report-group",
 		},
 		"invalid-arn": {
-			arn: "wrong",
+			arn: wrongValue,
 			err: arn.ErrParseArn,
 		},
 		"wrong-service": {
-			svc: "wrong",
+			svc: wrongValue,
 			err: arn.ErrWrongService,
 		},
 		"wrong-type": {
-			rType: "wrong",
+			rType: wrongValue,
 			err:   arn.ErrWrongResourceType,
 		},
 		"wrong-sub-type": {
-			subType: "wrong",
+			subType: wrongValue,
 			err:     arn.ErrWrongResourceSubType,
 		},
 		"slash-separated-subtype": {
