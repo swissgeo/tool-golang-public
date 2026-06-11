@@ -98,7 +98,7 @@ func listSSMParameter(opts listCmdOptions) error {
 
 func listSSMParametersForProfile(profile, search string, shared, verbose bool) ([]result, error) {
 	ctx := context.Background()
-	cmdArgs := []string{"ssm", "describe-parameters", "--query", "Parameters[*].Name", "--output", "text"}
+	cmdArgs := []string{awsCLISSMSubCmd, "describe-parameters", "--query", "Parameters[*].Name", "--output", "text"}
 	if search != "" {
 		cmdArgs = append(cmdArgs, "--parameter-filters", "Key=Name,Option=Contains,Values="+search)
 	}

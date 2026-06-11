@@ -1,8 +1,14 @@
-k8s-validate    # ignore built artifact
-!k8s-validate/  # but don't ignore folder
+k8s-validate
+!k8s-validate/
 e2e-tests
 !e2e-tests/
 aws-ssm
 !aws-ssm/
+codebuild
+!codebuild/
+business-metrics
+!business-metrics/
+cloudfront-logs
+!cloudfront-logs/
 bin/
 **/Dockerfile

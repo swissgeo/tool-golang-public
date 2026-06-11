@@ -50,7 +50,7 @@ func nameCompletion(cmd *cobra.Command, _ []string, _ string) ([]cobra.Completio
 	}
 	cmdArgs := []string{
 		"--no-cli-pager",
-		"ssm", "describe-parameters",
+		awsCLISSMSubCmd, "describe-parameters",
 		"--profile", profile,
 		"--query", "Parameters[*].Name",
 		"--output", "text",

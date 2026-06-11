@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/geoadmin/tool-golang-bgdi/lib/version"
 	"github.com/spf13/cobra"
@@ -12,6 +12,8 @@ import (
 
 var FailFast = false
 var Parallel = 0
+var Lint = false
+var NoColor = false
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -25,9 +27,23 @@ var rootCmd = &cobra.Command{
 		} else {
 			workers = Parallel
 		}
-		var valid = ValidateKustomize(workers, FailFast)
-		if !valid {
-			return errors.New("validation failed")
+		folders, err := FindKustomizeFolders()
+		if err != nil {
+			return fmt.Errorf("error: failed to find kustomize folders: %w", err)
+		}
+		if len(folders) == 0 {
+			fmt.Println("No kustomize folder found")
+			return nil
+		}
+		var errs []string
+		if !ValidateKustomize(folders, workers, FailFast) {
+			errs = append(errs, "Error: kustomize validation failed")
+		}
+		if Lint && !LintKustomize(folders, workers, FailFast) {
+			errs = append(errs, "Error: linter validation failed")
+		}
+		if len(errs) > 0 {
+			return fmt.Errorf("%s", strings.Join(errs, "\n"))
 		}
 		return nil
 	},
@@ -46,18 +62,24 @@ var versionCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, colorize(colorRed, err.Error()))
 		os.Exit(1)
 	}
 }
 
 func init() {
+	// Suppress cobra's default error and usage printing so Execute() can
+	// print a single, consistently formatted and colourised error line.
+	rootCmd.SilenceUsage = true
+	rootCmd.SilenceErrors = true
 	rootCmd.AddCommand(versionCmd)
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 	rootCmd.PersistentFlags().BoolVar(&FailFast, "fail-fast", false, "Fail on first error.")
+	rootCmd.PersistentFlags().BoolVar(&Lint, "lint", false, "Also run kube-linter on all kustomize folders.")
+	rootCmd.PersistentFlags().BoolVar(&NoColor, "no-color", false, "Disable colorized output.")
 	rootCmd.PersistentFlags().IntVarP(
 		&Parallel,
 		"parallel",

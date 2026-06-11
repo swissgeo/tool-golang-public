@@ -10,6 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testSubCmdKey = "subCmd-FlagA"
+	testCompValA  = "val-a"
+	testCompValB  = "val-b"
+)
+
 func TestCache(t *testing.T) {
 	cmdName := "test-completion-cache"
 
@@ -27,20 +33,20 @@ func TestCache(t *testing.T) {
 	assert.Equal(t, cobra.ShellCompDirectiveError, dir)
 	require.ErrorIs(t, err, completioncache.ErrNotFound)
 
-	err = cache.Write("subCmd-FlagA", []cobra.Completion{"val-a", "val-b"}, cobra.ShellCompDirectiveDefault)
+	err = cache.Write(testSubCmdKey, []cobra.Completion{testCompValA, testCompValB}, cobra.ShellCompDirectiveDefault)
 	require.NoError(t, err)
 
-	completions, dir, err = cache.Read("subCmd-FlagA")
+	completions, dir, err = cache.Read(testSubCmdKey)
 	require.NoError(t, err)
-	assert.Equal(t, []cobra.Completion{"val-a", "val-b"}, completions)
+	assert.Equal(t, []cobra.Completion{testCompValA, testCompValB}, completions)
 	assert.Equal(t, cobra.ShellCompDirectiveDefault, dir)
 
 	// Check with new Cache that previous value is still found.
 	cache, err = completioncache.NewCache(cmdName, time.Hour)
 	require.NoError(t, err)
-	completions, dir, err = cache.Read("subCmd-FlagA")
+	completions, dir, err = cache.Read(testSubCmdKey)
 	require.NoError(t, err)
-	assert.Equal(t, []cobra.Completion{"val-a", "val-b"}, completions)
+	assert.Equal(t, []cobra.Completion{testCompValA, testCompValB}, completions)
 	assert.Equal(t, cobra.ShellCompDirectiveDefault, dir)
 }
 
@@ -58,6 +64,6 @@ func TestCacheDelete(t *testing.T) {
 	assert.Equal(t, cobra.ShellCompDirectiveError, dir)
 	require.ErrorIs(t, err, completioncache.ErrCacheDeleted)
 
-	err = cache.Write("subCmd-FlagA", []cobra.Completion{"val-a", "val-b"}, cobra.ShellCompDirectiveDefault)
+	err = cache.Write(testSubCmdKey, []cobra.Completion{testCompValA, testCompValB}, cobra.ShellCompDirectiveDefault)
 	assert.ErrorIs(t, err, completioncache.ErrCacheDeleted)
 }
