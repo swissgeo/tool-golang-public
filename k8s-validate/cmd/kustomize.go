@@ -86,13 +86,10 @@ func ValidateKustomize(folders []string, workers int, failFast bool) bool {
 	var wg sync.WaitGroup
 	taskChan := make(chan string, len(folders)) // Buffered channel for tasks
 
-	// Start worker goroutines
 	valid := true
 	for range workers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for folder := range taskChan { // Process tasks from channel
+		wg.Go(func() {
+			for folder := range taskChan {
 				if !validate(folder) {
 					valid = false
 					if failFast {
@@ -100,7 +97,7 @@ func ValidateKustomize(folders []string, workers int, failFast bool) bool {
 					}
 				}
 			}
-		}()
+		})
 	}
 
 	// Send tasks to workers

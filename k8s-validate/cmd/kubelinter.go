@@ -71,9 +71,7 @@ func LintKustomize(folders []string, workers int, failFast bool) bool {
 
 	valid := true
 	for range workers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for folder := range taskChan {
 				if !lintFolder(folder, configs[folder]) {
 					valid = false
@@ -82,7 +80,7 @@ func LintKustomize(folders []string, workers int, failFast bool) bool {
 					}
 				}
 			}
-		}()
+		})
 	}
 
 	for _, folder := range folders {
