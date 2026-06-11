@@ -61,7 +61,12 @@ func runGetCmd(opts getCmdOptions) error {
 
 func getSSMParameter(opts getCmdOptions) (string, error) {
 	ctx := context.Background()
-	cmdArgs := []string{awsCLISSMSubCmd, "get-parameter", "--profile", opts.profile, "--name", opts.name, "--with-decryption"}
+	cmdArgs := []string{
+		awsCLISSMSubCmd, "get-parameter",
+		"--profile", opts.profile,
+		"--name", opts.name,
+		"--with-decryption",
+	}
 	if opts.valueOnly {
 		cmdArgs = append(cmdArgs, "--query", "Parameter.Value", "--output", "text")
 	}
