@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -67,34 +68,21 @@ func FindKustomizeFolders() ([]string, error) {
 }
 
 func validate(folder string) bool {
-	indent := "60"
 	ctx := context.Background()
-	// Build the kustomization.yaml with kustomize
 	cmd := exec.CommandContext(ctx, "kustomize", "build", folder)
-	cmd.Stderr = os.Stderr
+	var stderrBuf bytes.Buffer
+	cmd.Stderr = &stderrBuf
 	err := cmd.Run()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error running kustomize build on %s: %v\n", folder, err)
-		fmt.Fprintf(os.Stderr, "Running kustomize build on: %-"+indent+"s ERROR\n", folder+"...")
-		return false
+	ok := err == nil
+	var details []byte
+	if !ok {
+		details = stderrBuf.Bytes()
 	}
-	fmt.Printf("Running kustomize build on: %-"+indent+"s OK\n", folder+"...")
-	return true
+	printResult("kustomize build", folder, ok, details)
+	return ok
 }
 
-func ValidateKustomize(workers int, failFast bool) bool {
-	folders, err := FindKustomizeFolders()
-
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return false
-	}
-
-	if len(folders) == 0 {
-		fmt.Println("No kustomize folder found")
-		return true
-	}
-
+func ValidateKustomize(folders []string, workers int, failFast bool) bool {
 	var wg sync.WaitGroup
 	taskChan := make(chan string, len(folders)) // Buffered channel for tasks
 
