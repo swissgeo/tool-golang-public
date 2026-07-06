@@ -47,13 +47,10 @@ RUN addgroup -S geoadmin && adduser -S geoadmin -G geoadmin
 # RUN apk --no-cache add ca-certificates
 
 # Set the working directory
-WORKDIR /root/
+WORKDIR /app/
 
 # Copy the built binary from the builder stage
-COPY --from=builder /tool/BGDI_GO_PACKAGE.bin BGDI_GO_PACKAGE
-
-# # Set execution permissions
-RUN chmod +x BGDI_GO_PACKAGE
+COPY --from=builder --chmod=0755 /tool/BGDI_GO_PACKAGE.bin BGDI_GO_PACKAGE
 
 USER geoadmin
 
