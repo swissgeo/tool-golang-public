@@ -50,6 +50,7 @@ help:
 	@echo "- format                 Format the go source code"
 	@echo "- lint                   Lint the go source code"
 	@echo "- format-lint            Format and lint the go source code"
+	@echo "- govulncheck            Golang vulnerability check"
 	@echo "- test                   Runs tests"
 	@echo "- clean                  Clean the build directory."
 	@echo -e " \033[1mDocker TARGETS\033[0m "
@@ -76,10 +77,12 @@ format:
 .PHONY: lint
 lint:
 	golangci-lint run
-	govulncheck -show verbose ./...
 
 .PHONY: format-lint
 format-lint: format lint
+
+.PHONY: govulncheck
+govulncheck: govulncheck -show verbose ./...
 
 .PHONY: test
 test:
