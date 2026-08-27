@@ -69,7 +69,7 @@ func FindKustomizeFolders() ([]string, error) {
 
 func validate(folder string) bool {
 	ctx := context.Background()
-	cmd := exec.CommandContext(ctx, "kustomize", "build", folder)
+	cmd := exec.CommandContext(ctx, "kustomize", "build", "--enable-helm", folder)
 	var stderrBuf bytes.Buffer
 	cmd.Stderr = &stderrBuf
 	err := cmd.Run()
