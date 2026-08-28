@@ -1,6 +1,6 @@
 ---
 # WARNING this file is managed by terraform and cannot be edited manually, see
-# tf/github/geoadmin/modules/github-workflows-semver/main.tf
+# swissgeo/infra-terraform//github/swissgeo/modules/github-workflows-semver/main.tf
 name: on-pr
 
 on:
@@ -15,4 +15,4 @@ on:
 
 jobs:
   semver:
-    uses: geoadmin/.github/.github/workflows/pr-auto-semver.yml@master
+    uses: swissgeo/.github/.github/workflows/pr-auto-semver.yml@main

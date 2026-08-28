@@ -3,9 +3,9 @@ name: on-push
 on:
   push:
     branches:
-      - master
+      - main
       - develop
 
 jobs:
   release:
-    uses: geoadmin/.github/.github/workflows/semver-release.yml@master
+    uses: swissgeo/.github/.github/workflows/semver-release.yml@main
