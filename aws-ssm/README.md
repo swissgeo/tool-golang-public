@@ -5,8 +5,7 @@ This command can be use to search and retrieve AWS SSM Parameters across differe
 ## Installation
 
 ```bash
-export GOPRIVATE=github.com/geoadmin
-go install github.com/geoadmin/tool-golang-bgdi/aws-ssm@latest
+go install github.com/swissgeo/tool-golang-public/aws-ssm@latest
 ```
 
 Install tab completion

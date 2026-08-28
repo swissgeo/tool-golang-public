@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/codebuild"
-	"github.com/geoadmin/tool-golang-bgdi/lib/log"
+	"github.com/swissgeo/tool-golang-public/lib/aws/codebuild"
+	"github.com/swissgeo/tool-golang-public/lib/log"
 )
 
 func init() {

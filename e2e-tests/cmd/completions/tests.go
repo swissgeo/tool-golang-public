@@ -13,7 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/spf13/cobra"
 
-	"github.com/geoadmin/tool-golang-bgdi/e2e-tests/cmd/organization"
+	"github.com/swissgeo/tool-golang-public/e2e-tests/cmd/organization"
 )
 
 // Fetch file should be in the .git folder otherwise when updating the repository it gets

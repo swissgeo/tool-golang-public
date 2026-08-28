@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/geoadmin/tool-golang-bgdi/k8s-validate/cmd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/swissgeo/tool-golang-public/k8s-validate/cmd"
 )
 
 func writeLinterConfig(t *testing.T, dir string) {

@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/geoadmin/tool-golang-bgdi/e2e-tests/cmd/organization"
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/codebuild"
 	"github.com/spf13/cobra"
+	"github.com/swissgeo/tool-golang-public/e2e-tests/cmd/organization"
+	"github.com/swissgeo/tool-golang-public/lib/aws/codebuild"
 )
 
 //-----------------------------------------------------------------------------
@@ -94,7 +94,7 @@ func (flags *CommonCmdFlags) parse(cmd *cobra.Command) error {
 		// Based on organization we need to set different AWS profile when no role is used
 		switch flags.Organization {
 		case organization.GEOADMIN:
-			e = cmd.Flags().Set("profile", "swisstopo-bgdi-builder")
+			e = cmd.Flags().Set("profile", "swisstopo-swissgeo-builder")
 			if e != nil {
 				return e
 			}

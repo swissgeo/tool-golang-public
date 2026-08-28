@@ -1,6 +1,6 @@
 package main
 
-import "github.com/geoadmin/tool-golang-bgdi/aws-ssm/cmd"
+import "github.com/swissgeo/tool-golang-public/aws-ssm/cmd"
 
 func main() {
 	cmd.Execute()

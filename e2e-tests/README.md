@@ -5,7 +5,7 @@ AWS Codebuild CLI helper command to start our E2E tests.
 ## Installation
 
 ```bash
-go install github.com/geoadmin/tool-golang-bgdi/e2e-tests@latest
+go install github.com/swissgeo/tool-golang-public/e2e-tests@latest
 ```
 
 Install tab completion

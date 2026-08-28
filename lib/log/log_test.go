@@ -3,9 +3,9 @@ package log_test
 import (
 	"testing"
 
-	"github.com/geoadmin/tool-golang-bgdi/lib/log"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/require"
+	"github.com/swissgeo/tool-golang-public/lib/log"
 )
 
 func TestDefineFlags(t *testing.T) {

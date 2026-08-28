@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/geoadmin/tool-golang-bgdi/e2e-tests/cmd/organization"
-	"github.com/geoadmin/tool-golang-bgdi/lib/fmtc"
-	"github.com/geoadmin/tool-golang-bgdi/lib/version"
 	"github.com/spf13/cobra"
+	"github.com/swissgeo/tool-golang-public/e2e-tests/cmd/organization"
+	"github.com/swissgeo/tool-golang-public/lib/fmtc"
+	"github.com/swissgeo/tool-golang-public/lib/version"
 )
 
 var ErrTestFailed = errors.New("test failed")
@@ -20,7 +20,7 @@ const ErrTestFailedCode = 2
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "e2e-tests",
-	Short: "BGDI CLI tool to control E2E tests",
+	Short: "SWISSGEO CLI tool to control E2E tests",
 	Long: `This tool use the AWS SDK to control Codebuild to start E2E tests on Codebuild
 and get the final reports`,
 	SilenceUsage:  true,
@@ -64,7 +64,7 @@ func init() {
 	rootCmd.PersistentFlags().String(
 		"org",
 		string(organization.GEOADMIN),
-		"Organization of the tests to start/get (geoadmin or swissgeo). Default is geoadmin",
+		"Organization of the tests to start/get (swissgeo or swissgeo). Default is geoadmin",
 	)
 
 	_ = rootCmd.RegisterFlagCompletionFunc(

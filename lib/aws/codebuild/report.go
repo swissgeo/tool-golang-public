@@ -6,7 +6,7 @@ import (
 	"time"
 
 	codebuild_types "github.com/aws/aws-sdk-go-v2/service/codebuild/types"
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/arn"
+	"github.com/swissgeo/tool-golang-public/lib/aws/arn"
 )
 
 type Report struct {

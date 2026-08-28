@@ -16,9 +16,8 @@ GIT_TAG = `git describe --tags || echo "no version info"`
 AUTHOR = $(USER)
 
 # Docker variables
-DOCKER_REGISTRY = 974517877189.dkr.ecr.eu-central-1.amazonaws.com
+DOCKER_REGISTRY = 074597099015.dkr.ecr.eu-central-1.amazonaws.com
 DOCKER_IMG_LOCAL_TAG := local-$(USER)-$(GIT_HASH_SHORT)
-# TODO(PB-2197): add codebuild once the corresponding ECR is ready
 DOCKERISED_BINS = codebuild e2e-tests
 DOCKERFILES := $(patsubst %,%/Dockerfile,$(DOCKERISED_BINS))
 
@@ -95,11 +94,11 @@ all: $(BINS) $(DOCKERFILES)
 
 %/Dockerfile: Dockerfile.in
 	echo "# THIS FILE IS AUTO-GENERATED, DO NOT EDIT OR COMMIT." > $@
-	sed "s/BGDI_GO_PACKAGE/$(subst /Dockerfile,,$@)/g" $< >> $@
+	sed "s/SWISSGEO_GO_PACKAGE/$(subst /Dockerfile,,$@)/g" $< >> $@
 
 .PHONY: dockerlogin
 dockerlogin:
-	aws --profile swisstopo-bgdi-builder ecr get-login-password --region $(AWS_DEFAULT_REGION) | docker login --username AWS --password-stdin $(DOCKER_REGISTRY)
+	aws --profile swisstopo-swissgeo-builder ecr get-login-password --region $(AWS_DEFAULT_REGION) | docker login --username AWS --password-stdin $(DOCKER_REGISTRY)
 
 
 dockerbuild-%: %/Dockerfile FORCE
@@ -111,9 +110,9 @@ dockerbuild-%: %/Dockerfile FORCE
 		--build-arg GIT_DIRTY="$(GIT_DIRTY)" \
 		--build-arg VERSION="$(GIT_TAG)" \
 		--build-arg AUTHOR="$(AUTHOR)" \
-		-t $(DOCKER_REGISTRY)/tool-golang-bgdi/$(PACKAGE):$(DOCKER_IMG_LOCAL_TAG) \
+		-t $(DOCKER_REGISTRY)/swissgeo/tool-golang-public/$(PACKAGE):$(DOCKER_IMG_LOCAL_TAG) \
 		-f $(PACKAGE)/Dockerfile .
 
 dockerpush-%: dockerbuild-% FORCE
 	$(eval PACKAGE=$(subst dockerpush-,,$@))
-	docker push $(DOCKER_REGISTRY)/tool-golang-bgdi/$(PACKAGE):$(DOCKER_IMG_LOCAL_TAG)
+	docker push $(DOCKER_REGISTRY)/swissgeo/tool-golang-public/$(PACKAGE):$(DOCKER_IMG_LOCAL_TAG)

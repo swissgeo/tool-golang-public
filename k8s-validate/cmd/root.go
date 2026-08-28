@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/geoadmin/tool-golang-bgdi/lib/version"
 	"github.com/spf13/cobra"
+	"github.com/swissgeo/tool-golang-public/lib/version"
 )
 
 var FailFast = false

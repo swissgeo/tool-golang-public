@@ -10,11 +10,11 @@ import (
 
 	aws_codebuild "github.com/aws/aws-sdk-go-v2/service/codebuild"
 	codebuild_types "github.com/aws/aws-sdk-go-v2/service/codebuild/types"
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/arn"
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/config"
-	"github.com/geoadmin/tool-golang-bgdi/lib/log"
-	"github.com/geoadmin/tool-golang-bgdi/lib/str"
 	"github.com/spf13/pflag"
+	"github.com/swissgeo/tool-golang-public/lib/aws/arn"
+	"github.com/swissgeo/tool-golang-public/lib/aws/config"
+	"github.com/swissgeo/tool-golang-public/lib/log"
+	"github.com/swissgeo/tool-golang-public/lib/str"
 )
 
 var ErrFetchReportFailed = errors.New("failure while attempting to fetch build report")

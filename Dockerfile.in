@@ -7,7 +7,7 @@
 #
 # This file is meant to be used by Make to generate the actual Dockerfile
 # for each Go package that is meant to be turned into a Docker image. This is
-# done by substituting the BGDI_GO_PACKAGE string with the name of the
+# done by substituting the SWISSGEO_GO_PACKAGE string with the name of the
 # directory/package into which the Dockerfile is generated.
 
 ARG BASE_IMAGE_VERSION=YOU_FORGOT_TO_SET_A_VERSION
@@ -24,7 +24,7 @@ RUN go mod tidy
 COPY . .
 
 # Build only the specific tool
-RUN CGO_ENABLED=0 go build -o BGDI_GO_PACKAGE.bin ./BGDI_GO_PACKAGE
+RUN CGO_ENABLED=0 go build -o SWISSGEO_GO_PACKAGE.bin ./SWISSGEO_GO_PACKAGE
 
 # Create a minimal runtime image
 FROM alpine:latest
@@ -41,7 +41,7 @@ LABEL version=$VERSION
 LABEL author=$AUTHOR
 
 # Create a user and group (non-root)
-RUN addgroup -S geoadmin && adduser -S geoadmin -G geoadmin
+RUN addgroup -S swissgeo && adduser -S swissgeo -G swissgeo
 
 # Install certificates (needed for HTTPS requests)
 # RUN apk --no-cache add ca-certificates
@@ -50,10 +50,10 @@ RUN addgroup -S geoadmin && adduser -S geoadmin -G geoadmin
 WORKDIR /app/
 
 # Copy the built binary from the builder stage
-COPY --from=builder --chmod=0755 /tool/BGDI_GO_PACKAGE.bin BGDI_GO_PACKAGE
+COPY --from=builder --chmod=0755 /tool/SWISSGEO_GO_PACKAGE.bin SWISSGEO_GO_PACKAGE
 
-USER geoadmin
+USER swissgeo
 
 # Default command when running the container
-ENTRYPOINT ["./BGDI_GO_PACKAGE"]
+ENTRYPOINT ["./SWISSGEO_GO_PACKAGE"]
 CMD []

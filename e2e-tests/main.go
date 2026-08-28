@@ -1,6 +1,6 @@
 package main
 
-import "github.com/geoadmin/tool-golang-bgdi/e2e-tests/cmd"
+import "github.com/swissgeo/tool-golang-public/e2e-tests/cmd"
 
 func main() {
 	cmd.Execute()

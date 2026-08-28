@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/arn"
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/codebuild"
+	"github.com/swissgeo/tool-golang-public/lib/aws/arn"
+	"github.com/swissgeo/tool-golang-public/lib/aws/codebuild"
 )
 
 func TestBuildLink(t *testing.T) {

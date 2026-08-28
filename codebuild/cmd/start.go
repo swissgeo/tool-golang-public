@@ -12,8 +12,8 @@ import (
 
 	codebuild_types "github.com/aws/aws-sdk-go-v2/service/codebuild/types"
 
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/codebuild"
-	"github.com/geoadmin/tool-golang-bgdi/lib/log"
+	"github.com/swissgeo/tool-golang-public/lib/aws/codebuild"
+	"github.com/swissgeo/tool-golang-public/lib/log"
 )
 
 var ErrBuildFailed = errors.New("build failed")

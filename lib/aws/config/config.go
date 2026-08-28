@@ -14,9 +14,9 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/arn"
-	"github.com/geoadmin/tool-golang-bgdi/lib/log"
-	"github.com/geoadmin/tool-golang-bgdi/lib/str"
+	"github.com/swissgeo/tool-golang-public/lib/aws/arn"
+	"github.com/swissgeo/tool-golang-public/lib/log"
+	"github.com/swissgeo/tool-golang-public/lib/str"
 )
 
 type awsConfigFlags struct {

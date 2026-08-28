@@ -7,9 +7,9 @@ import (
 	"time"
 
 	codebuild_types "github.com/aws/aws-sdk-go-v2/service/codebuild/types"
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/arn"
-	"github.com/geoadmin/tool-golang-bgdi/lib/fmtc"
-	"github.com/geoadmin/tool-golang-bgdi/lib/log"
+	"github.com/swissgeo/tool-golang-public/lib/aws/arn"
+	"github.com/swissgeo/tool-golang-public/lib/fmtc"
+	"github.com/swissgeo/tool-golang-public/lib/log"
 )
 
 type BuildID string

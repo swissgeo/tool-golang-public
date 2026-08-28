@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/codebuild"
-	"github.com/geoadmin/tool-golang-bgdi/lib/fmtc"
-	"github.com/geoadmin/tool-golang-bgdi/lib/version"
 	"github.com/spf13/cobra"
+	"github.com/swissgeo/tool-golang-public/lib/aws/codebuild"
+	"github.com/swissgeo/tool-golang-public/lib/fmtc"
+	"github.com/swissgeo/tool-golang-public/lib/version"
 )
 
 const ErrBuildFailedCode = 2
@@ -18,8 +18,8 @@ const ErrBuildFailedCode = 2
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:           "codebuild",
-	Short:         "BGDI CLI tool to control Codebuild projects",
-	Long:          `This tool use the AWS SDK to control BGDI Codebuild projects.`,
+	Short:         "SWISSGEO CLI tool to control Codebuild projects",
+	Long:          `This tool use the AWS SDK to control SWISSGEO Codebuild projects.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }

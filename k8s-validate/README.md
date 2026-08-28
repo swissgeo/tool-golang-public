@@ -1,14 +1,14 @@
 # k8s-validate
 
 This command can be use to validate all kubernetes kustomization folders down the current working directory.
-It is mainly used by the CI of kubernetes manifest repositories like geoadmin/infra-kubernetes and geoadmin/infra-kubernetes-internal.
+It is mainly used by the CI of kubernetes manifest repositories like swissgeo/infra-kubernetes and geoadmin/infra-kubernetes-internal.
 
 Currently it only supports kustomize but could be extended in future to also supports helm if needed.
 
 ## Installation
 
 ```bash
-go install github.com/geoadmin/tool-golang-bgdi/k8s-validate@latest
+go install github.com/swissgeo/tool-golang-public/k8s-validate@latest
 ```
 
 Install tab completion

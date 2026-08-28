@@ -1,10 +1,10 @@
-# Golang CLI Tools for BGDI
+# Golang CLI Tools for SWISSGEO
 
 | Branch | Status |
 |--------|-----------|
-| master | ![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiSklmL2ZFYzE2QXRVZzloVFo4dFYrdHh3a2pzZXZOYnYxSXpVVzRRbUlzUDJ6OEpSMWREaHo5d01hYUFpdjR3V05ORkljcG96aUlJTG8wOWZoMituTzlNPSIsIml2UGFyYW1ldGVyU3BlYyI6InBTdWJDZjh1bXNaR1pZSGwiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master) |
+| main | ![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoidEVDZVVLWjRsT2xIWHFWYUs0Y1Eyc0xyNlhMT0VaWlNnSzFRS0pxUVVaQmgweW5vUXYxUEtXS2tLUTdNU3Fxc29QZFcwcFVRSHhMWGljdUl3N21xUURrPSIsIml2UGFyYW1ldGVyU3BlYyI6InN5NFptUWl2RkdKSHFITmYiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=main) |
 
-This repository contains CLI tools written in golang to manage BGDI services and infrastructure.
+This repository contains CLI tools written in golang to manage SWISSGEO services and infrastructure.
 
 - [Repository structure](#repository-structure)
 - [Naming convention](#naming-convention)
@@ -15,7 +15,7 @@ This repository contains CLI tools written in golang to manage BGDI services and
 ## Repository structure
 
 ```text
-tool-golang-bgdi
+tool-golang-public
     |-- TOOL_NAME
     .      |-- main.go
            |-- README.md

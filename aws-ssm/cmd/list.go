@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	local_aws "github.com/geoadmin/tool-golang-bgdi/lib/aws"
-	"github.com/geoadmin/tool-golang-bgdi/lib/fmtc"
 	"github.com/spf13/cobra"
+	local_aws "github.com/swissgeo/tool-golang-public/lib/aws"
+	"github.com/swissgeo/tool-golang-public/lib/fmtc"
 	"golang.org/x/sync/errgroup"
 )
 

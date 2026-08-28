@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/geoadmin/tool-golang-bgdi/lib/aws/arn"
+	"github.com/swissgeo/tool-golang-public/lib/aws/arn"
 )
 
 func TestParse(t *testing.T) {
