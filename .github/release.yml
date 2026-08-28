@@ -1,7 +1,7 @@
 ---
 # .github/release.yml
 # WARNING this file is managed by terraform and cannot be edited manually, see
-# swissgeo/infra-terraform//github/swissgeo/modules/github-auto-release-notes-config/main.tf
+# tf/github/geoadmin/modules/github-auto-release-notes-config/main.tf
 
 changelog:
   exclude:
@@ -10,7 +10,7 @@ changelog:
       - refactoring
       - new-release
     authors:
-      - terraform-swissgeo
+      - terraform-bgdi
   categories:
     - title: ":boom: Breaking Changes"
       labels:
