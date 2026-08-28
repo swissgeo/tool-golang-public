@@ -1,0 +1,82 @@
+package cmd
+
+import (
+	"errors"
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+	"github.com/swissgeo/tool-golang-public/e2e-tests/cmd/organization"
+	"github.com/swissgeo/tool-golang-public/lib/fmtc"
+	"github.com/swissgeo/tool-golang-public/lib/version"
+)
+
+var ErrTestFailed = errors.New("test failed")
+
+const ErrTestFailedCode = 2
+
+//-----------------------------------------------------------------------------
+
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
+	Use:   "e2e-tests",
+	Short: "SWISSGEO CLI tool to control E2E tests",
+	Long: `This tool use the AWS SDK to control Codebuild to start E2E tests on Codebuild
+and get the final reports`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+}
+
+//-----------------------------------------------------------------------------
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version",
+	Run: func(_ *cobra.Command, _ []string) {
+		fmt.Println(version.GetVersion())
+	},
+}
+
+//-----------------------------------------------------------------------------
+
+// Execute adds all child commands to the root command and sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute() {
+	err := rootCmd.Execute()
+	if err != nil {
+		if errors.Is(err, ErrTestFailed) {
+			os.Exit(ErrTestFailedCode)
+		}
+		fmt.Fprintln(os.Stderr, string(fmtc.Red)+err.Error()+string(fmtc.Reset))
+		os.Exit(1)
+	}
+}
+
+//-----------------------------------------------------------------------------
+
+func init() {
+	rootCmd.AddCommand(versionCmd)
+
+	rootCmd.PersistentFlags().Bool("no-color", false, "Do not use color in output")
+	rootCmd.PersistentFlags().Bool("no-progress", false, "For long running command don't display progress indicator")
+	rootCmd.PersistentFlags().Int("interval", 1, "Interval in seconds to check the E2E tests status")
+	rootCmd.PersistentFlags().BoolP("detailed", "d", false, "Show detailed test result")
+	rootCmd.PersistentFlags().String(
+		"org",
+		string(organization.GEOADMIN),
+		"Organization of the tests to start/get (swissgeo or swissgeo). Default is geoadmin",
+	)
+
+	_ = rootCmd.RegisterFlagCompletionFunc(
+		"org",
+		cobra.FixedCompletions(
+			[]cobra.Completion{
+				cobra.Completion(organization.GEOADMIN),
+				cobra.Completion(organization.SWISSGEO),
+			},
+			cobra.ShellCompDirectiveNoFileComp,
+		),
+	)
+}
+
+//-----------------------------------------------------------------------------
