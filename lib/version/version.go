@@ -5,7 +5,10 @@ import (
 )
 
 func GetVersion() string {
-	info, ok := debug.ReadBuildInfo()
+	return versionFromBuildInfo(debug.ReadBuildInfo())
+}
+
+func versionFromBuildInfo(info *debug.BuildInfo, ok bool) string {
 	if !ok {
 		return "unknown" // Return fallback if build info is not available
 	}

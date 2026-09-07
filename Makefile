@@ -12,7 +12,7 @@ COVERAGE_PROFILE = coverage.out
 # https://about.codecov.io/blog/getting-started-with-code-coverage-for-golang/
 COVERAGRE_FLAGS = -race -covermode=atomic -coverprofile=$(COVERAGE_PROFILE)
 # -count=1 disables test caching
-GO_TEST_FLAGS = $(COVERAGRE_FLAGS) -count=1 -v
+GO_TEST_FLAGS = $(COVERAGRE_FLAGS) -count=1
 
 # Docker metadata
 GOLANG_VERSION ?= `GOENV_GOMOD_VERSION_ENABLE=1 goenv local`
