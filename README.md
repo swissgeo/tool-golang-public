@@ -1,8 +1,8 @@
 # Golang CLI Tools for SWISSGEO
 
-| Branch | Status |
-|--------|-----------|
-| main | ![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoidEVDZVVLWjRsT2xIWHFWYUs0Y1Eyc0xyNlhMT0VaWlNnSzFRS0pxUVVaQmgweW5vUXYxUEtXS2tLUTdNU3Fxc29QZFcwcFVRSHhMWGljdUl3N21xUURrPSIsIml2UGFyYW1ldGVyU3BlYyI6InN5NFptUWl2RkdKSHFITmYiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=main) |
+| Branch | Status | Coverage |
+|--------|-----------|-----------|
+| main | ![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoidEVDZVVLWjRsT2xIWHFWYUs0Y1Eyc0xyNlhMT0VaWlNnSzFRS0pxUVVaQmgweW5vUXYxUEtXS2tLUTdNU3Fxc29QZFcwcFVRSHhMWGljdUl3N21xUURrPSIsIml2UGFyYW1ldGVyU3BlYyI6InN5NFptUWl2RkdKSHFITmYiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=main) | [![codecov-main](https://codecov.io/gh/swissgeo/tool-golang-public/branch/main/graph/badge.svg)](https://codecov.io/gh/swissgeo/tool-golang-public) |
 
 This repository contains CLI tools written in golang to manage SWISSGEO services and infrastructure. It is also used to manage the legacy BGDI services and infrastructure and
 has been ported from https://github.com/geoadmin/tool-golang-bgdi.

@@ -6,6 +6,14 @@ CURRENT_DIR := $(shell pwd)
 
 BINS = $(shell find * -name main.go -printf 'bin/%h\n')
 
+# Test variables
+COVERAGE_PROFILE = coverage.out
+# -race and -covermode=atomic are recommended by
+# https://about.codecov.io/blog/getting-started-with-code-coverage-for-golang/
+COVERAGRE_FLAGS = -race -covermode=atomic -coverprofile=$(COVERAGE_PROFILE)
+# -count=1 disables test caching
+GO_TEST_FLAGS = $(COVERAGRE_FLAGS) -count=1 -v
+
 # Docker metadata
 GOLANG_VERSION ?= `GOENV_GOMOD_VERSION_ENABLE=1 goenv local`
 GIT_HASH = `git rev-parse HEAD`
@@ -85,7 +93,7 @@ govulncheck: govulncheck -show verbose ./... ## Golang vulnerability check
 
 .PHONY: test
 test: ## Runs tests
-	go test ./... -v -count=1 # count=1 disables test caching
+	go test ./... $(GO_TEST_FLAGS)
 
 .PHONY: all
 all: $(BINS) $(DOCKERFILES) ## Build all the Dockerfiles and Go binaries: $(DOCKERFILES) $(BINS)
