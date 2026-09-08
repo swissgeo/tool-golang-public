@@ -102,7 +102,8 @@ func findTests(repoPath string, org organization.Organization) ([]string, error)
 				return filepath.SkipDir
 			}
 
-			if d.IsDir() || (strings.HasPrefix(d.Name(), "test_") && strings.HasSuffix(d.Name(), ".py")) {
+			if (d.IsDir() && d.Name() != "tests") ||
+				(strings.HasPrefix(d.Name(), "test_") && strings.HasSuffix(d.Name(), ".py")) {
 				// remove the root prefix
 				relPath := strings.TrimPrefix(strings.TrimPrefix(path, root), string(os.PathSeparator))
 				if org == organization.GEOADMIN {
