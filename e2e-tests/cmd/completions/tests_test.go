@@ -18,17 +18,31 @@ func TestShouldFetch(t *testing.T) {
 		timestamp            []byte
 		wantFetch, wantError bool
 	}{
-		{name: "missing timestamp", timestamp: nil, wantFetch: true, wantError: false},
 		{
-			name: "recent fetch", timestamp: []byte(time.Now().Add(-time.Hour).UTC().Format(time.RFC3339)),
+			name:      "missing timestamp",
+			timestamp: nil,
+			wantFetch: true, wantError: false,
+		},
+		{
+			name:      "recent fetch",
+			timestamp: []byte(time.Now().Add(-time.Hour).UTC().Format(time.RFC3339)),
 			wantFetch: false, wantError: false,
 		},
 		{
-			name: "expired fetch", timestamp: []byte(time.Now().Add(-25 * time.Hour).UTC().Format(time.RFC3339)),
+			name:      "expired fetch",
+			timestamp: []byte(time.Now().Add(-25 * time.Hour).UTC().Format(time.RFC3339)),
 			wantFetch: true, wantError: false,
 		},
-		{name: "invalid timestamp", timestamp: []byte("invalid"), wantFetch: true, wantError: true},
-		{name: "empty timestamp", timestamp: []byte{}, wantFetch: true, wantError: true},
+		{
+			name:      "invalid timestamp",
+			timestamp: []byte("invalid"),
+			wantFetch: true, wantError: true,
+		},
+		{
+			name:      "empty timestamp",
+			timestamp: []byte{},
+			wantFetch: true, wantError: true,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := t.TempDir()
@@ -100,6 +114,8 @@ func TestFindTests(t *testing.T) {
 		org  organization.Organization
 		want []string
 	}{
+		// NOTE: empty directory are reported, because the FindTests can not yet check for children
+		// when adding path to the list.
 		{organization.GEOADMIN, []string{"api", "api.test_search", "empty", "test_root"}},
 		{organization.SWISSGEO, []string{"api", filepath.Join("api", "test_search.py"), "empty", "test_root.py"}},
 	} {
