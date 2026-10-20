@@ -94,7 +94,7 @@ func (flags *CommonCmdFlags) parse(cmd *cobra.Command) error {
 		// Based on organization we need to set different AWS profile when no role is used
 		switch flags.Organization {
 		case organization.GEOADMIN:
-			e = cmd.Flags().Set("profile", "swisstopo-swissgeo-builder")
+			e = cmd.Flags().Set("profile", "swisstopo-bgdi-builder")
 			if e != nil {
 				return e
 			}
