@@ -13,7 +13,7 @@ const AnyHost = "(any host)"
 var (
 	// Host(`a`) or HostRegexp(`a`), also with several values (Traefik v2): Host(`a`, `b`). The values
 	// are matched as backtick quoted strings, so that parentheses in a regexp don't end the matcher.
-	hostMatcherRe = regexp.MustCompile("Host(?:Regexp)?\\(((?:\\s*`[^`]*`\\s*,?)+)\\s*\\)")
+	hostMatcherRe = regexp.MustCompile("Host(Regexp)?\\(((?:\\s*`[^`]*`\\s*,?)+)\\s*\\)")
 	backtickRe    = regexp.MustCompile("`([^`]*)`")
 )
 
@@ -36,8 +36,13 @@ type Row struct {
 func Hosts(match string) []string {
 	var hosts []string
 	for _, m := range hostMatcherRe.FindAllStringSubmatch(match, -1) {
-		for _, v := range backtickRe.FindAllStringSubmatch(m[1], -1) {
-			hosts = append(hosts, v[1])
+		isRegexp := m[1] != ""
+		for _, v := range backtickRe.FindAllStringSubmatch(m[2], -1) {
+			h := v[1]
+			if !isRegexp {
+				h = strings.ToLower(h)
+			}
+			hosts = append(hosts, h)
 		}
 	}
 	if len(hosts) == 0 {

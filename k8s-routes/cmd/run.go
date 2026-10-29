@@ -10,8 +10,8 @@ import (
 )
 
 // runLocal lists the routes rendered from the local kustomize overlays of env.
-func runLocal(ctx context.Context, out io.Writer, env string) error {
-	irs, err := renderLocal(ctx, env)
+func runLocal(ctx context.Context, out, errOut io.Writer, env string) error {
+	irs, err := renderLocal(ctx, errOut, env)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func runLive(ctx context.Context, out, errOut io.Writer) error {
 	if WithLocal {
 		g.Go(func() error {
 			var err error
-			local, err = renderLocal(gctx, env)
+			local, err = renderLocal(gctx, errOut, env)
 			return err
 		})
 	}
@@ -59,12 +59,12 @@ func runLive(ctx context.Context, out, errOut io.Writer) error {
 	return printRoutes(out, Merge(live, local), IngressRoute.Key)
 }
 
-func renderLocal(ctx context.Context, env string) ([]IngressRoute, error) {
+func renderLocal(ctx context.Context, errOut io.Writer, env string) ([]IngressRoute, error) {
 	overlays, err := FindOverlays(Root, Glob, env)
 	if err != nil {
 		return nil, err
 	}
-	return RenderOverlays(ctx, overlays, runtime.NumCPU(), KustomizeBuild(EnableHelm))
+	return RenderOverlays(ctx, overlays, runtime.NumCPU(), KustomizeBuild(EnableHelm), errOut)
 }
 
 func printRoutes(out io.Writer, irs []IngressRoute, name func(IngressRoute) string) error {

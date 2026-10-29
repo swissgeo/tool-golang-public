@@ -50,7 +50,7 @@ wildcard of the glob as namespace (e.g. the service name), like the ArgoCD
 application would do.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runLocal(cmd.Context(), cmd.OutOrStdout(), args[0])
+		return runLocal(cmd.Context(), cmd.OutOrStdout(), cmd.ErrOrStderr(), args[0])
 	},
 }
 
@@ -76,8 +76,8 @@ IngressRoutes removed or renamed locally are still shown with their live version
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version",
-	Run: func(_ *cobra.Command, _ []string) {
-		fmt.Println(version.GetVersion())
+	Run: func(cmd *cobra.Command, _ []string) {
+		fmt.Fprintln(cmd.OutOrStdout(), version.GetVersion())
 	},
 }
 
@@ -90,7 +90,7 @@ func Execute() {
 	stop()
 	if err != nil {
 		msg := "Error: " + err.Error()
-		if !NoColor {
+		if UseColor(os.Stderr) {
 			msg = fmtc.Colorise(fmtc.Red, msg)
 		}
 		fmt.Fprintln(os.Stderr, msg)

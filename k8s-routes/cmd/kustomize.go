@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -28,7 +29,7 @@ type BuildFunc func(ctx context.Context, dir string) ([]byte, error)
 // by env. The namespace of each overlay is the path segment containing the first wildcard of the
 // glob (e.g. the service name for services/*/overlays/{env}), or empty if the glob has none.
 func FindOverlays(root, glob, env string) ([]Overlay, error) {
-	pattern := filepath.FromSlash(strings.ReplaceAll(glob, envPlaceholder, env))
+	pattern := filepath.Clean(filepath.FromSlash(strings.ReplaceAll(glob, envPlaceholder, env)))
 	matches, globErr := filepath.Glob(filepath.Join(root, pattern))
 	if globErr != nil {
 		return nil, fmt.Errorf("invalid glob %q: %w", glob, globErr)
@@ -84,8 +85,15 @@ func KustomizeBuild(enableHelm bool) BuildFunc {
 
 // RenderOverlays renders the overlays in parallel with at most workers concurrent builds and returns
 // their IngressRoutes, in the order of the overlays. IngressRoutes without namespace get the
-// namespace of their overlay. It stops at the first failure.
-func RenderOverlays(ctx context.Context, overlays []Overlay, workers int, build BuildFunc) ([]IngressRoute, error) {
+// namespace of their overlay. It stops at the first failure. IngressRoutes with the same
+// <namespace>/<name> rendered by several overlays are reported to warn.
+func RenderOverlays(
+	ctx context.Context,
+	overlays []Overlay,
+	workers int,
+	build BuildFunc,
+	warn io.Writer,
+) ([]IngressRoute, error) {
 	results := make([][]IngressRoute, len(overlays))
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(workers)
@@ -111,9 +119,33 @@ func RenderOverlays(ctx context.Context, overlays []Overlay, workers int, build 
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
+	warnDuplicates(warn, overlays, results)
 	var irs []IngressRoute
 	for _, r := range results {
 		irs = append(irs, r...)
 	}
 	return irs, nil
+}
+
+// warnDuplicates reports the IngressRoutes rendered by several overlays, results[i] being the
+// IngressRoutes of overlays[i].
+func warnDuplicates(warn io.Writer, overlays []Overlay, results [][]IngressRoute) {
+	var keys []string
+	dirsByKey := make(map[string][]string)
+	for i, irs := range results {
+		for _, ir := range irs {
+			key, dir := ir.Key(), overlays[i].Dir
+			if _, seen := dirsByKey[key]; !seen {
+				keys = append(keys, key)
+			}
+			if !slices.Contains(dirsByKey[key], dir) {
+				dirsByKey[key] = append(dirsByKey[key], dir)
+			}
+		}
+	}
+	for _, key := range keys {
+		if dirs := dirsByKey[key]; len(dirs) > 1 {
+			fmt.Fprintf(warn, "Warning: IngressRoute %s is rendered by several overlays: %s\n", key, strings.Join(dirs, ", "))
+		}
+	}
 }

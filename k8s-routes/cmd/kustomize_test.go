@@ -1,8 +1,10 @@
 package cmd_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -50,6 +52,18 @@ func TestFindOverlays_NamespaceSegment(t *testing.T) {
 			[]cmd.Overlay{{Dir: filepath.Join(root, "apps/svc-api/dev"), Namespace: "svc-api"}},
 		},
 		{"no wildcard", "static/{env}", []cmd.Overlay{{Dir: filepath.Join(root, "static/dev")}}},
+		{
+			"leading dot", "./apps/svc-*/{env}",
+			[]cmd.Overlay{{Dir: filepath.Join(root, "apps/svc-api/dev"), Namespace: "svc-api"}},
+		},
+		{
+			"double slash", "apps//svc-*/{env}",
+			[]cmd.Overlay{{Dir: filepath.Join(root, "apps/svc-api/dev"), Namespace: "svc-api"}},
+		},
+		{
+			"parent dir", "static/../apps/svc-*/{env}",
+			[]cmd.Overlay{{Dir: filepath.Join(root, "apps/svc-api/dev"), Namespace: "svc-api"}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -110,7 +124,8 @@ func TestRenderOverlays(t *testing.T) {
 		return []byte(fakeManifests), nil
 	}
 
-	irs, err := cmd.RenderOverlays(context.Background(), overlays, 2, build)
+	var warn bytes.Buffer
+	irs, err := cmd.RenderOverlays(context.Background(), overlays, 2, build, &warn)
 
 	require.NoError(t, err)
 	assert.Equal(t, int32(3), calls.Load())
@@ -120,6 +135,20 @@ func TestRenderOverlays(t *testing.T) {
 	}
 	// in the order of the overlays, the explicit namespace is kept
 	assert.Equal(t, []string{"a/web", "explicit/shared", "c/web", "explicit/shared"}, keys)
+	// the explicit namespace makes both overlays render the same IngressRoute
+	assert.Equal(t, "Warning: IngressRoute explicit/shared is rendered by several overlays: dir-a, dir-c\n", warn.String())
+}
+
+func TestRenderOverlays_NoDuplicate(t *testing.T) {
+	build := func(_ context.Context, _ string) ([]byte, error) {
+		return []byte(fakeManifests), nil
+	}
+
+	var warn bytes.Buffer
+	_, err := cmd.RenderOverlays(context.Background(), []cmd.Overlay{{Dir: "dir-a", Namespace: "a"}}, 1, build, &warn)
+
+	require.NoError(t, err)
+	assert.Empty(t, warn.String())
 }
 
 func TestRenderOverlays_BuildError(t *testing.T) {
@@ -131,7 +160,7 @@ func TestRenderOverlays_BuildError(t *testing.T) {
 		return []byte(fakeManifests), nil
 	}
 
-	_, err := cmd.RenderOverlays(context.Background(), overlays, 1, build)
+	_, err := cmd.RenderOverlays(context.Background(), overlays, 1, build, io.Discard)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "broken")
@@ -142,7 +171,7 @@ func TestRenderOverlays_ParseError(t *testing.T) {
 		return []byte("kind: [unclosed"), nil
 	}
 
-	_, err := cmd.RenderOverlays(context.Background(), []cmd.Overlay{{Dir: "invalid"}}, 1, build)
+	_, err := cmd.RenderOverlays(context.Background(), []cmd.Overlay{{Dir: "invalid"}}, 1, build, io.Discard)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse the output of invalid")

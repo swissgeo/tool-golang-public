@@ -34,6 +34,7 @@ func TestHosts(t *testing.T) {
 		{"duplicates", "Host(`dup.example.com`) || Host(`dup.example.com`)", []string{"dup.example.com"}},
 		{"no host", "PathPrefix(`/api`)", []string{cmd.AnyHost}},
 		{"empty", "", []string{cmd.AnyHost}},
+		{"case mix", "Host(`upper.example.com`) || Host(`Upper.example.com`)", []string{"upper.example.com"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

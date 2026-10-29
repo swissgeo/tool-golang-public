@@ -23,14 +23,18 @@ func DetectEnv(kubeContext string) (string, error) {
 // Merge returns the live IngressRoutes with the local ones replacing those with the same
 // <namespace>/<name>, sorted by key. The local IngressRoutes are marked with MarkerNew if they
 // don't exist live and MarkerChanged if their spec differs from the live one. Live IngressRoutes
-// without local counterpart (e.g. removed or renamed locally) are kept.
+// without local counterpart (e.g. removed or renamed locally) are kept. If several local
+// IngressRoutes have the same key, the last one is kept.
 func Merge(live, local []IngressRoute) []IngressRoute {
-	byKey := make(map[string]IngressRoute, len(live)+len(local))
+	liveByKey := make(map[string]IngressRoute, len(live))
 	for _, ir := range live {
-		byKey[ir.Key()] = ir
+		liveByKey[ir.Key()] = ir
 	}
+	// Compare against liveByKey only, so that a local IngressRoute rendered by several overlays
+	// is not compared against another local one.
+	byKey := maps.Clone(liveByKey)
 	for _, ir := range local {
-		liveIR, exists := byKey[ir.Key()]
+		liveIR, exists := liveByKey[ir.Key()]
 		switch {
 		case !exists:
 			ir.Marker = MarkerNew

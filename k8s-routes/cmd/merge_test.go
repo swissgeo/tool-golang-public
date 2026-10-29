@@ -101,6 +101,38 @@ func TestMerge_SameNameInOtherNamespace(t *testing.T) {
 	assert.Equal(t, cmd.MarkerNew, merged[1].Marker)
 }
 
+func TestMerge_DuplicateLocal(t *testing.T) {
+	live := []cmd.IngressRoute{parseIngressRoute(t, "api", "changed", "Host(`api.example.com`)")}
+	local := []cmd.IngressRoute{
+		// Both local duplicates must be compared against the live one, not against each other
+		parseIngressRoute(t, "api", "changed", "Host(`api.example.com`) && PathPrefix(`/v2`)"),
+		parseIngressRoute(t, "api", "changed", "Host(`api.example.com`) && PathPrefix(`/v2`)"),
+		parseIngressRoute(t, "api", "new", "Host(`new.example.com`)"),
+		parseIngressRoute(t, "api", "new", "Host(`new.example.com`)"),
+	}
+
+	merged := cmd.Merge(live, local)
+
+	require.Len(t, merged, 2)
+	assert.Equal(t, "api/changed", merged[0].Key())
+	assert.Equal(t, cmd.MarkerChanged, merged[0].Marker)
+	assert.Equal(t, "api/new", merged[1].Key())
+	assert.Equal(t, cmd.MarkerNew, merged[1].Marker)
+}
+
+func TestMerge_DuplicateLocalLastWins(t *testing.T) {
+	local := []cmd.IngressRoute{
+		parseIngressRoute(t, "api", "new", "Host(`first.example.com`)"),
+		parseIngressRoute(t, "api", "new", "Host(`last.example.com`)"),
+	}
+
+	merged := cmd.Merge(nil, local)
+
+	require.Len(t, merged, 1)
+	assert.Equal(t, cmd.MarkerNew, merged[0].Marker)
+	assert.Equal(t, "Host(`last.example.com`)", merged[0].Spec.Routes[0].Match)
+}
+
 func TestMerge_NoLocal(t *testing.T) {
 	live := []cmd.IngressRoute{
 		parseIngressRoute(t, "z", "last", "Host(`z.example.com`)"),
