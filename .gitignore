@@ -1,5 +1,7 @@
 k8s-validate
 !k8s-validate/
+k8s-routes
+!k8s-routes/
 e2e-tests
 !e2e-tests/
 aws-ssm

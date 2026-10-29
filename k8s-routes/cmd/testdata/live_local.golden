@@ -1,0 +1,5 @@
+MATCH                                         PRIORITY  SERVICES  MIDDLEWARES  NAME
+Host(`api.example.com`) && PathPrefix(`/v1`)  100       api       cors,auth    service-api/api (*)
+Host(`api.example.com`) && PathPrefix(`/v2`)  (44)      api-v2                 service-api/api (*)
+
+Host(`beta.example.com`)                      (24)      beta                   service-api/beta (+)
