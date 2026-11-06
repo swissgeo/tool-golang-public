@@ -19,7 +19,7 @@ var Host = ""
 // Kustomize rendering flags, used by `local` and `live --local`
 var Root = "."
 var Glob = "services/*/overlays/{env}"
-var EnableHelm = false
+var EnableHelm = true
 
 // Live flags
 var KubeContext = ""
@@ -101,7 +101,7 @@ func Execute() {
 func addKustomizeFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&Root, "root", Root, "Root directory the glob is relative to.")
 	cmd.Flags().StringVar(&Glob, "glob", Glob, "Glob of the kustomize overlays, {env} is replaced by the env.")
-	cmd.Flags().BoolVar(&EnableHelm, "enable-helm", false, "Pass --enable-helm to kustomize build.")
+	cmd.Flags().BoolVar(&EnableHelm, "enable-helm", true, "Pass --enable-helm to kustomize build.")
 }
 
 func init() {
