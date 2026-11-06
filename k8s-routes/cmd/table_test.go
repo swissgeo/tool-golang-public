@@ -60,24 +60,58 @@ func tableRows() []cmd.Row {
 func TestRenderTable(t *testing.T) {
 	var buf bytes.Buffer
 
-	require.NoError(t, cmd.RenderTable(&buf, tableRows(), false))
+	require.NoError(t, cmd.RenderTable(&buf, tableRows(), cmd.TableOptions{}))
 
 	assertGolden(t, "table", buf.Bytes())
+}
+
+func TestRenderTable_SplitMatch(t *testing.T) {
+	rows := append(tableRows(), cmd.Row{
+		Host: "www.example.net", Name: "ns/v2", Priority: 3, ExplicitPriority: true,
+		Match:    "Host(`www.example.net`) && (PathPrefix(`/v2`) || PathPrefix(`/v3`)) && Headers(`X-Api`, `a&&b`)",
+		Services: []string{"v2"},
+	})
+	var buf bytes.Buffer
+
+	require.NoError(t, cmd.RenderTable(&buf, rows, cmd.TableOptions{SplitMatch: true}))
+
+	assertGolden(t, "table_split", buf.Bytes())
+}
+
+func TestSplitAnd(t *testing.T) {
+	tests := []struct {
+		match string
+		want  []string
+	}{
+		{"PathPrefix(`/status`)", []string{"PathPrefix(`/status`)"}},
+		{"Host(`a`) || Host(`b`)", []string{"Host(`a`) || Host(`b`)"}},
+		{"Host(`a`) && PathPrefix(`/api`)", []string{"Host(`a`)", "PathPrefix(`/api`)"}},
+		{"Host(`a`)&&Path(`/x`)&&Method(`GET`)", []string{"Host(`a`)", "Path(`/x`)", "Method(`GET`)"}},
+		{"Host(`a`) && (Path(`/x`) && Method(`GET`) || Path(`/y`))",
+			[]string{"Host(`a`)", "(Path(`/x`) && Method(`GET`) || Path(`/y`))"}},
+		{"HostRegexp(`^a(&&)?$`) && Path(`/x`)", []string{"HostRegexp(`^a(&&)?$`)", "Path(`/x`)"}},
+		{`Header("X", "a\" && b") && Path("/x")`, []string{`Header("X", "a\" && b")`, `Path("/x")`}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.match, func(t *testing.T) {
+			assert.Equal(t, tt.want, cmd.SplitAnd(tt.match))
+		})
+	}
 }
 
 func TestRenderTable_Empty(t *testing.T) {
 	var buf bytes.Buffer
 
-	require.NoError(t, cmd.RenderTable(&buf, nil, false))
+	require.NoError(t, cmd.RenderTable(&buf, nil, cmd.TableOptions{SplitMatch: true}))
 
 	assert.Equal(t, "MATCH  PRIORITY  SERVICES  MIDDLEWARES  NAME\n", buf.String())
 }
 
 func TestRenderTable_Color(t *testing.T) {
 	var plain, colored bytes.Buffer
-	require.NoError(t, cmd.RenderTable(&plain, tableRows(), false))
+	require.NoError(t, cmd.RenderTable(&plain, tableRows(), cmd.TableOptions{SplitMatch: true}))
 
-	require.NoError(t, cmd.RenderTable(&colored, tableRows(), true))
+	require.NoError(t, cmd.RenderTable(&colored, tableRows(), cmd.TableOptions{Color: true, SplitMatch: true}))
 
 	out := colored.String()
 	assert.Contains(t, out, "\033[34m(21)\033[0m", "computed priority")

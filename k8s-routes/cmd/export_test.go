@@ -6,6 +6,7 @@ var RootCmd = rootCmd
 // ResetFlags resets the flag variables to their defaults, as cobra doesn't between executions.
 func ResetFlags() {
 	NoColor = false
+	DisableLineSplit = false
 	Host = ""
 	Root = "."
 	Glob = "services/*/overlays/{env}"

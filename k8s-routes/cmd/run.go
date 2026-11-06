@@ -69,5 +69,5 @@ func renderLocal(ctx context.Context, errOut io.Writer, env string) ([]IngressRo
 
 func printRoutes(out io.Writer, irs []IngressRoute, name func(IngressRoute) string) error {
 	rows := FilterHost(BuildRows(irs, name), Host)
-	return RenderTable(out, rows, UseColor(out))
+	return RenderTable(out, rows, TableOptions{Color: UseColor(out), SplitMatch: IsTerminal(out) && !DisableLineSplit})
 }

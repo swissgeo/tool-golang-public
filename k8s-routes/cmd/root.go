@@ -15,6 +15,7 @@ import (
 // Shared flags
 var NoColor = false
 var Host = ""
+var DisableLineSplit = false
 
 // Kustomize rendering flags, used by `local` and `live --local`
 var Root = "."
@@ -36,7 +37,11 @@ under each of them, the routes without Host matcher are listed first, as they
 compete with the routes of all hosts.
 
 When no explicit priority is set, Traefik uses the length of the match rule as
-priority. Such computed priorities are shown in parentheses.`,
+priority. Such computed priorities are shown in parentheses.
+
+In a terminal, the match rules longer than 80 characters are split on their
+top-level && operators, one clause per line, unless --disable-line-split is
+set. When the output is piped, each route stays on a single line.`,
 }
 
 var localCmd = &cobra.Command{
@@ -112,6 +117,8 @@ func init() {
 	rootCmd.AddCommand(localCmd, liveCmd, versionCmd)
 
 	rootCmd.PersistentFlags().BoolVar(&NoColor, "no-color", false, "Disable colorized output.")
+	rootCmd.PersistentFlags().BoolVar(&DisableLineSplit, "disable-line-split", false,
+		"Disable splitting long match rules on multiple lines.")
 	rootCmd.PersistentFlags().StringVar(&Host, "host", "", "Only show routes whose host contains this string.")
 
 	addKustomizeFlags(localCmd)
