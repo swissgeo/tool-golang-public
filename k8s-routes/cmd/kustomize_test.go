@@ -152,7 +152,7 @@ func TestRenderOverlays_NoDuplicate(t *testing.T) {
 }
 
 func TestRenderOverlays_BuildError(t *testing.T) {
-	overlays := []cmd.Overlay{{Dir: "ok"}, {Dir: "broken"}}
+	overlays := []cmd.Overlay{{Dir: "broken"}, {Dir: "ok", Namespace: "ok"}}
 	build := func(_ context.Context, dir string) ([]byte, error) {
 		if dir == "broken" {
 			return nil, errors.New("kustomize build broken failed")
@@ -160,10 +160,13 @@ func TestRenderOverlays_BuildError(t *testing.T) {
 		return []byte(fakeManifests), nil
 	}
 
-	_, err := cmd.RenderOverlays(context.Background(), overlays, 1, build, io.Discard)
+	var warn bytes.Buffer
+	irs, err := cmd.RenderOverlays(context.Background(), overlays, 1, build, &warn)
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "broken")
+	require.NoError(t, err)
+	// the failing overlay is skipped, the others are still rendered
+	assert.Len(t, irs, 2)
+	assert.Equal(t, "Warning: skipping overlay broken: kustomize build broken failed\n", warn.String())
 }
 
 func TestRenderOverlays_ParseError(t *testing.T) {
@@ -171,10 +174,24 @@ func TestRenderOverlays_ParseError(t *testing.T) {
 		return []byte("kind: [unclosed"), nil
 	}
 
-	_, err := cmd.RenderOverlays(context.Background(), []cmd.Overlay{{Dir: "invalid"}}, 1, build, io.Discard)
+	var warn bytes.Buffer
+	irs, err := cmd.RenderOverlays(context.Background(), []cmd.Overlay{{Dir: "invalid"}}, 1, build, &warn)
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to parse the output of invalid")
+	require.NoError(t, err)
+	assert.Empty(t, irs)
+	assert.Contains(t, warn.String(), "failed to parse the output of invalid")
+}
+
+func TestRenderOverlays_Canceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	build := func(ctx context.Context, _ string) ([]byte, error) {
+		return nil, ctx.Err()
+	}
+
+	_, err := cmd.RenderOverlays(ctx, []cmd.Overlay{{Dir: "a"}}, 1, build, io.Discard)
+
+	require.ErrorIs(t, err, context.Canceled)
 }
 
 // fakeKustomize puts a fake kustomize in PATH that prints its arguments, or fails if the

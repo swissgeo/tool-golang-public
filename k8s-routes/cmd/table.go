@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -58,6 +59,15 @@ func plain(text string) cell {
 func UseColor(w io.Writer) bool {
 	f, ok := w.(*os.File)
 	return !NoColor && ok && term.IsTerminal(int(f.Fd()))
+}
+
+// warnf writes a warning line to w, in yellow if w is a terminal.
+func warnf(w io.Writer, format string, args ...any) {
+	msg := "Warning: " + fmt.Sprintf(format, args...)
+	if UseColor(w) {
+		msg = fmtc.Colorise(fmtc.Yellow, msg)
+	}
+	fmt.Fprintln(w, msg)
 }
 
 // RenderTable writes the rows as a table with aligned columns, the hosts separated by an empty line.

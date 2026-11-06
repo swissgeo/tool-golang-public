@@ -85,7 +85,8 @@ func KustomizeBuild(enableHelm bool) BuildFunc {
 
 // RenderOverlays renders the overlays in parallel with at most workers concurrent builds and returns
 // their IngressRoutes, in the order of the overlays. IngressRoutes without namespace get the
-// namespace of their overlay. It stops at the first failure. IngressRoutes with the same
+// namespace of their overlay. Overlays failing to build or parse are reported to warn and skipped;
+// only the cancellation of ctx is returned as an error. IngressRoutes with the same
 // <namespace>/<name> rendered by several overlays are reported to warn.
 func RenderOverlays(
 	ctx context.Context,
@@ -95,34 +96,50 @@ func RenderOverlays(
 	warn io.Writer,
 ) ([]IngressRoute, error) {
 	results := make([][]IngressRoute, len(overlays))
-	g, ctx := errgroup.WithContext(ctx)
+	errs := make([]error, len(overlays))
+	// No errgroup.WithContext: a failing overlay must not cancel the builds of the others.
+	var g errgroup.Group
 	g.SetLimit(workers)
 	for i, overlay := range overlays {
 		g.Go(func() error {
-			out, err := build(ctx, overlay.Dir)
-			if err != nil {
-				return err
-			}
-			irs, err := ParseManifests(bytes.NewReader(out))
-			if err != nil {
-				return fmt.Errorf("failed to parse the output of %s: %w", overlay.Dir, err)
-			}
-			for j := range irs {
-				if irs[j].Metadata.Namespace == "" {
-					irs[j].Metadata.Namespace = overlay.Namespace
-				}
-			}
-			results[i] = irs
+			results[i], errs[i] = renderOverlay(ctx, overlay, build)
 			return nil
 		})
 	}
-	if err := g.Wait(); err != nil {
+	_ = g.Wait()
+	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	for i, err := range errs {
+		if err != nil {
+			// indent the stderr of kustomize so that it is not mistaken for a separate error
+			msg := strings.ReplaceAll(strings.TrimSpace(err.Error()), "\n", "\n    ")
+			warnf(warn, "skipping overlay %s: %s", overlays[i].Dir, msg)
+		}
 	}
 	warnDuplicates(warn, overlays, results)
 	var irs []IngressRoute
 	for _, r := range results {
 		irs = append(irs, r...)
+	}
+	return irs, nil
+}
+
+// renderOverlay builds the overlay and returns its IngressRoutes, IngressRoutes without namespace
+// getting the namespace of the overlay.
+func renderOverlay(ctx context.Context, overlay Overlay, build BuildFunc) ([]IngressRoute, error) {
+	out, err := build(ctx, overlay.Dir)
+	if err != nil {
+		return nil, err
+	}
+	irs, err := ParseManifests(bytes.NewReader(out))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse the output of %s: %w", overlay.Dir, err)
+	}
+	for j := range irs {
+		if irs[j].Metadata.Namespace == "" {
+			irs[j].Metadata.Namespace = overlay.Namespace
+		}
 	}
 	return irs, nil
 }
@@ -145,7 +162,7 @@ func warnDuplicates(warn io.Writer, overlays []Overlay, results [][]IngressRoute
 	}
 	for _, key := range keys {
 		if dirs := dirsByKey[key]; len(dirs) > 1 {
-			fmt.Fprintf(warn, "Warning: IngressRoute %s is rendered by several overlays: %s\n", key, strings.Join(dirs, ", "))
+			warnf(warn, "IngressRoute %s is rendered by several overlays: %s", key, strings.Join(dirs, ", "))
 		}
 	}
 }
