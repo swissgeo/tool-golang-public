@@ -1,0 +1,6 @@
+MATCH                                           PRIORITY  SERVICES          MIDDLEWARES  NAME
+PathPrefix(`/status`)                           (21)      status                         shop
+
+Host(`www.example.net`) || Host(`example.net`)  (46)      shop,shop-canary               shop
+
+Host(`www.example.net`) || Host(`example.net`)  (46)      shop,shop-canary               shop

@@ -89,7 +89,7 @@ linters:
     exhaustive:
       check:
         - switch
-        - map
+        - mapliteral
     exhaustruct:
       exclude:
         - ^net/http.Client$
@@ -178,6 +178,11 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
+    rules:
+      # Repeated literals in tests are usually more readable than constants
+      - path: _test\.go
+        linters:
+          - goconst
     paths:
       - third_party$
       - builtin$

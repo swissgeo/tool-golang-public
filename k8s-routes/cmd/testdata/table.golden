@@ -1,0 +1,8 @@
+MATCH                                           PRIORITY  SERVICES          MIDDLEWARES         NAME
+PathPrefix(`/status`)                           (21)      status                                ns/status
+
+Host(`example.net`) && PathPrefix(`/api`)       1000      api               rate-limit,headers  ns/api (*)
+Host(`www.example.net`) || Host(`example.net`)  (46)      shop,shop-canary                      ns/shop
+
+Host(`www.example.net`) || Host(`example.net`)  (46)      shop,shop-canary                      ns/shop
+Host(`www.example.net`) && Path(`/beta`)        5         beta                                  ns/beta (+)
