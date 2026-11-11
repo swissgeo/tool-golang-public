@@ -14,7 +14,7 @@ const awsCLISSMSubCmd = "ssm"
 var rootCmd = &cobra.Command{
 	Use:   "aws-ssm",
 	Short: "AWS SSM Parameter helper",
-	Long: `Easily search and get AWS SSM Parameter values across all AWS accounts.
+	Long: `Easily search, get, update and create AWS SSM Parameter values across all AWS accounts.
 A 24h cache is used for parameter name completion under $Home/.cache/aws-ssm/`,
 }
 

@@ -3,9 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -60,7 +57,6 @@ func runGetCmd(opts getCmdOptions) error {
 }
 
 func getSSMParameter(opts getCmdOptions) (string, error) {
-	ctx := context.Background()
 	cmdArgs := []string{
 		awsCLISSMSubCmd, "get-parameter",
 		"--profile", opts.profile,
@@ -71,17 +67,11 @@ func getSSMParameter(opts getCmdOptions) (string, error) {
 		cmdArgs = append(cmdArgs, "--query", "Parameter.Value", "--output", "text")
 	}
 
-	if opts.verbose {
-		fmt.Println("aws", strings.Join(cmdArgs, " "))
-	}
-
-	awsCmd := exec.CommandContext(ctx, "aws", cmdArgs...)
-	awsCmd.Stderr = os.Stderr
-	res, err := awsCmd.Output()
+	stdout, stderr, err := runAWSCmd(context.Background(), cmdArgs, opts.verbose)
 	if err != nil {
-		return "", err
+		return "", awsCmdError("failed to get parameter "+opts.name, err, stderr)
 	}
-	return string(res), nil
+	return stdout, nil
 }
 
 func init() {
