@@ -119,6 +119,13 @@ linters:
       ignore-comments: true
     gocognit:
       min-complexity: 20
+    goconst:
+      # Command line flags passed to external CLIs (e.g. aws, kubectl) are kept as literals:
+      # a hardcoded argument list reads like the command run in a terminal, while constants
+      # hide it. goconst is meant for repeated values that must be kept in sync, but each
+      # flag belongs to its own command and can change independently.
+      ignore-string-values:
+        - "^--[a-z-]+$"
     gochecksumtype:
       default-signifies-exhaustive: false
     gocritic:

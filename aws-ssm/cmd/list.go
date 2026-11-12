@@ -2,16 +2,15 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
-	"os/exec"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/spf13/cobra"
 	local_aws "github.com/swissgeo/tool-golang-public/lib/aws"
 	"github.com/swissgeo/tool-golang-public/lib/fmtc"
-	"golang.org/x/sync/errgroup"
 )
 
 type listCmdOptions struct {
@@ -57,39 +56,50 @@ func listSSMParameter(opts listCmdOptions) error {
 		profiles = []string{opts.profile}
 	}
 
-	results := []result{}
-	errG := new(errgroup.Group)
+	// Run all profiles in parallel and report the errors of all profiles, not only the first one
+	var (
+		results []result
+		errs    []error
+		mu      sync.Mutex
+		wg      sync.WaitGroup
+	)
 	for _, p := range profiles {
-		errG.Go(func() error {
+		wg.Go(func() {
 			res, e := listSSMParametersForProfile(p, opts.search, opts.shared, opts.verbose)
+			mu.Lock()
+			defer mu.Unlock()
 			if e != nil {
-				return e
+				errs = append(errs, e)
+				return
 			}
 			results = append(results, res...)
-			return nil
 		})
 	}
-	if err = errG.Wait(); err != nil {
-		return err
+	wg.Wait()
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 	if opts.withDecryption {
 		for i, r := range results {
-			errG.Go(func() error {
+			wg.Go(func() {
 				res, e := getSSMParameter(getCmdOptions{
 					profile:   r.profile,
 					name:      r.key,
 					valueOnly: true,
 					verbose:   opts.verbose,
 				})
+				mu.Lock()
+				defer mu.Unlock()
 				if e != nil {
-					return e
+					errs = append(errs, e)
+					return
 				}
 				results[i].value = strings.TrimSpace(res)
-				return nil
 			})
 		}
-		if err = errG.Wait(); err != nil {
-			return err
+		wg.Wait()
+		if len(errs) > 0 {
+			return errors.Join(errs...)
 		}
 	}
 	printResults(results)
@@ -97,8 +107,11 @@ func listSSMParameter(opts listCmdOptions) error {
 }
 
 func listSSMParametersForProfile(profile, search string, shared, verbose bool) ([]result, error) {
-	ctx := context.Background()
-	cmdArgs := []string{awsCLISSMSubCmd, "describe-parameters", "--query", "Parameters[*].Name", "--output", "text"}
+	cmdArgs := []string{
+		awsCLISSMSubCmd, "describe-parameters", //nolint:goconst // aws cli arguments are kept as literals for readability
+		"--query", "Parameters[*].Name",
+		"--output", "text",
+	}
 	if search != "" {
 		cmdArgs = append(cmdArgs, "--parameter-filters", "Key=Name,Option=Contains,Values="+search)
 	}
@@ -107,18 +120,12 @@ func listSSMParametersForProfile(profile, search string, shared, verbose bool) (
 	}
 	cmdArgs = append(cmdArgs, "--profile", profile)
 
-	if verbose {
-		fmt.Println("aws", strings.Join(cmdArgs, " "))
-	}
-
-	awsCmd := exec.CommandContext(ctx, "aws", cmdArgs...)
-	awsCmd.Stderr = os.Stderr
-	res, err := awsCmd.Output()
+	stdout, stderr, err := runAWSCmd(context.Background(), cmdArgs, verbose)
 	if err != nil {
-		return nil, err
+		return nil, awsCmdError("failed to list parameters for profile "+profile, err, stderr)
 	}
 	var results []result
-	for _, r := range strings.Fields(string(res)) {
+	for _, r := range strings.Fields(stdout) {
 		results = append(results, result{key: r, profile: profile, color: getProfileColor(profile)})
 	}
 	return results, nil
@@ -140,7 +147,10 @@ func printResults(res []result) {
 	}
 }
 
-var profileColors = make(map[string]fmtc.Color)
+var (
+	profileColors   = make(map[string]fmtc.Color)
+	profileColorsMu sync.Mutex
+)
 
 // getProfileColor returns a color for the given profile. Caches the profile-color relations
 // to always return the same color for the same profile. If there are more profiles than colors,
@@ -161,6 +171,8 @@ func getProfileColor(p string) fmtc.Color {
 		"\033[96m", // Bright Cyan
 		"\033[30m", // Black
 	}
+	profileColorsMu.Lock()
+	defer profileColorsMu.Unlock()
 	if c, found := profileColors[p]; found {
 		return c
 	}
